@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Baljyoti Indegenous</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <i class="fas fa-leaf"></i>
+            <h2>Baljyoti Admin</h2>
+        </div>
+
+        <nav class="nav-menu">
+            <a href="/admin/dashboard" class="nav-link <%= path === '/dashboard' ? 'active' : '' %>">
+                <i class="fas fa-chart-line"></i> Dashboard
+            </a>
+            <a href="/admin/products" class="nav-link <%= path === '/products' ? 'active' : '' %>">
+                <i class="fas fa-box-open"></i> Products
+            </a>
+            <a href="/admin/orders" class="nav-link <%= path === '/orders' ? 'active' : '' %>">
+                <i class="fas fa-shopping-bag"></i> Orders
+            </a>
+            <a href="/admin/users" class="nav-link <%= path === '/users' ? 'active' : '' %>">
+                <i class="fas fa-users"></i> Users
+            </a>
+
+            <a href="/admin/logout" class="nav-link nav-link-danger">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main ContentWrapper -->
+    <main class="main-content">
+
+        <!-- Header -->
+        <header class="top-header">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="mobile-menu-toggle"
+                    onclick="document.getElementById('sidebar').classList.toggle('open')">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="header-greeting">
+                    <h3 style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500; margin-bottom: 0.2rem;">
+                        Welcome back,</h3>
+                    <h3 style="font-size: 1.25rem;">
+                        <%= admin && admin.email ? admin.email.split('@')[0] : 'Administrator' %>
+                    </h3>
+                </div>
+            </div>
+
+            <div class="header-meta">
+                <div class="date-badge">
+                    <i class="far fa-calendar-alt"></i>
+                    <%= new Date().toLocaleDateString('en-US', { weekday: 'short' , year: 'numeric' , month: 'short' ,
+                        day: 'numeric' }) %>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dynamic Body Content -->
+        <div class="content-wrapper">
+            <%- body %>
+        </div>
+    </main>
+</body>
+
+</html>

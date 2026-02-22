@@ -1,0 +1,173 @@
+<%- include('header', { path: '/orders' , admin: admin }) %>
+
+    <style>
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .status-processing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-shipped {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-delivered {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+
+        .status-select {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9em;
+            font-family: inherit;
+            background-color: #f8fafc;
+        }
+
+        .update-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-left: 5px;
+            transition: background-color 0.2s;
+        }
+
+        .update-btn:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .order-date {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+    </style>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">Order Management</h2>
+        <div class="stat-card"
+            style="padding: 10px 20px; border-radius: 8px; box-shadow: none; border: 1px solid var(--border-color); width: auto; margin: 0;">
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <i class="fas fa-shopping-bag" style="color: var(--primary-color); font-size: 1.2rem;"></i>
+                <div style="display: flex; flex-direction: column;">
+                    <span
+                        style="font-size: 0.8em; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Total
+                        Orders</span>
+                    <span style="font-weight: 700; font-size: 1.2em;">
+                        <%= typeof orders !=='undefined' ? orders.length : 0 %>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="padding-left: 2rem;">Order ID</th>
+                        <th>Customer</th>
+                        <th>Total Amount</th>
+                        <th>Payment</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th style="text-align: right; padding-right: 2rem;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (typeof orders !=='undefined' && orders.length> 0) { %>
+                        <% orders.forEach(order=> { %>
+                            <tr>
+                                <td style="padding-left: 2rem; font-family: monospace; color: var(--text-muted);">
+                                    #<%= order._id.toString().substring(order._id.toString().length - 8) %>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 500;">
+                                        <%= order.user ? order.user.name : 'Unknown User' %>
+                                    </div>
+                                    <div style="font-size: 0.85em; color: var(--text-muted);">
+                                        <%= order.user ? order.user.email : '' %>
+                                    </div>
+                                </td>
+                                <td style="font-weight: 600;">₹<%= order.totalPrice.toFixed(2) %>
+                                </td>
+                                <td>
+                                    <span style="font-size: 0.9em; color: var(--text-muted);">
+                                        <%= order.paymentMethod %>
+                                    </span>
+                                    <% if (order.isPaid) { %>
+                                        <i class="fas fa-check-circle"
+                                            style="color: #166534; font-size: 0.8em; margin-left: 5px;"
+                                            title="Paid"></i>
+                                        <% } else { %>
+                                            <i class="fas fa-clock"
+                                                style="color: #b91c1c; font-size: 0.8em; margin-left: 5px;"
+                                                title="Unpaid"></i>
+                                            <% } %>
+                                </td>
+                                <td>
+                                    <% let statusClass='status-processing' ; if (order.status==='Shipped' )
+                                        statusClass='status-shipped' ; if (order.status==='Delivered' )
+                                        statusClass='status-delivered' ; if (order.status==='Cancelled' )
+                                        statusClass='status-cancelled' ; %>
+                                        <span class="status-badge <%= statusClass %>">
+                                            <%= order.status %>
+                                        </span>
+                                </td>
+                                <td class="order-date">
+                                    <%= new Date(order.createdAt).toLocaleDateString() %>
+                                </td>
+                                <td style="text-align: right; padding-right: 2rem;">
+                                    <form action="/admin/orders/<%= order._id %>/status" method="POST"
+                                        style="display: flex; align-items: center; justify-content: flex-end;">
+                                        <select name="status" class="status-select" required>
+                                            <option value="Processing" <%=order.status==='Processing' ? 'selected' : ''
+                                                %>>Processing</option>
+                                            <option value="Shipped" <%=order.status==='Shipped' ? 'selected' : '' %>
+                                                >Shipped</option>
+                                            <option value="Delivered" <%=order.status==='Delivered' ? 'selected' : '' %>
+                                                >Delivered</option>
+                                            <option value="Cancelled" <%=order.status==='Cancelled' ? 'selected' : '' %>
+                                                >Cancelled</option>
+                                        </select>
+                                        <button type="submit" class="update-btn" title="Update Status">
+                                            <i class="fas fa-save"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="7"
+                                            style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                            <i class="fas fa-box-open"
+                                                style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; display: block;"></i>
+                                            No orders found.
+                                        </td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <%- include('footer') %>

@@ -1,0 +1,69 @@
+<%- include('header', { path: '/dashboard' , admin: admin }) %>
+
+    <div style="margin-bottom: 2rem;">
+        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--text-main);">Dashboard Overview</h2>
+        <p style="color: var(--text-muted);">Here is what's happening with your store today.</p>
+    </div>
+
+    <div class="card-grid">
+        <div class="stat-card">
+            <div class="stat-icon icon-blue">
+                <i class="fas fa-shopping-bag"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Orders</h3>
+                <div class="value">
+                    <%= orderCount %>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-green">
+                <i class="fas fa-rupee-sign"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Sales</h3>
+                <div class="value">₹<%= totalSales %>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-orange">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Products</h3>
+                <div class="value">
+                    <%= productCount %>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon icon-purple">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-details">
+                <h3>Total Users</h3>
+                <div class="value">
+                    <%= userCount %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Recent Activity</h3>
+            <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">View All</button>
+        </div>
+        <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+            <i class="fas fa-history" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--border-color);"></i>
+            <p style="font-size: 1.1rem; font-weight: 500;">No recent activity recorded.</p>
+            <p style="font-size: 0.9rem;">When activities happen, they'll show up here.</p>
+        </div>
+    </div>
+
+    <%- include('footer') %>
