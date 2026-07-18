@@ -1,0 +1,255 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {/* ════════════════════════════════════════
+          SHOP BY CATEGORY — 3x2 GRID
+      ════════════════════════════════════════ */}
+      <section className="w-full max-w-[1600px] mx-auto px-4 md:px-[20px] py-12">
+        <div className="text-center mb-10">
+          <Link href="/collections" className="inline-block group">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 transition-colors group-hover:text-amber-700 uppercase font-serif">
+              Shop by Category
+            </h2>
+            <div className="h-1 w-0 group-hover:w-full bg-amber-700 transition-all duration-500 mx-auto mt-2" />
+          </Link>
+        </div>
+
+        {/* GRID */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-[10px]">
+
+          {CATEGORIES.map((cat) => (
+            <Link
+              key={cat.slug}
+              href={`/collections/${cat.slug}`}
+              className="group relative flex flex-col justify-end rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 aspect-square"
+              style={{ background: cat.bg }}
+            >
+              {/* Overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-500" />
+
+              {/* Icon */}
+              <span
+                className="absolute left-1/2 -translate-x-1/2 text-6xl md:text-7xl transition-all duration-500 group-hover:scale-125 group-hover:-translate-y-3"
+                style={{ top: "45%", transform: "translate(-50%, -50%)" }}
+              >
+                {cat.emoji}
+              </span>
+
+              {/* Label */}
+              <div className="relative z-10 text-center py-5 bg-black/30 backdrop-blur-md">
+                <span
+                  className="block text-xs md:text-sm font-bold uppercase tracking-[0.3em]"
+                  style={{ color: cat.text }}
+                >
+                  {cat.label}
+                </span>
+              </div>
+            </Link>
+          ))}
+
+        </div>
+      </section>
+
+      <section className="w-full bg-[#f5f0e8]">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-[20px] pt-20 pb-10 flex flex-col">
+
+          {/* Heading */}
+          <div className="text-center mb-16">
+            <p className="text-2xl md:text-3xl tracking-[0.4em] text-[#b03a48] uppercase font-serif font-bold">
