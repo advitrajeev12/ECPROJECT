@@ -23,6 +23,22 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: 'user',
     },
+    isMobileVerified: {
+        type: Boolean,
+        default: false,
+    },
+    isEmailVerified: {
+        type: Boolean,
+        default: false,
+    },
+    emailVerificationToken: {
+        type: String,
+        default: null,
+    },
+    emailVerificationExpires: {
+        type: Date,
+        default: null,
+    },
     addresses: [
         {
             street: { type: String, required: true },

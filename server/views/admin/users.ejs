@@ -2,23 +2,59 @@
 
     <h2>Users Management</h2>
     <div class="card">
-        <p>User management interface coming soon.</p>
-        <table style="width: 100%; margin-top: 20px;">
-            <thead>
-                <tr style="text-align: left; border-bottom: 1px solid #eee;">
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Joined</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td colspan="4" style="text-align: center; padding: 20px;">No users found or functionality not
-                        implemented yet.</td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table style="width: 100%; margin-top: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid #eee;">
+                        <th style="padding: 12px 8px;">Name</th>
+                        <th style="padding: 12px 8px;">Email Address</th>
+                        <th style="padding: 12px 8px;">Mobile</th>
+                        <th style="padding: 12px 8px;">Role</th>
+                        <th style="padding: 12px 8px;">Verified?</th>
+                        <th style="padding: 12px 8px;">Joined</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (users && users.length> 0) { %>
+                        <% users.forEach(user=> { %>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 12px 8px;">
+                                    <%= user.name %>
+                                </td>
+                                <td style="padding: 12px 8px;">
+                                    <%= user.email %>
+                                </td>
+                                <td style="padding: 12px 8px;">
+                                    <%= user.mobile || 'N/A' %>
+                                </td>
+                                <td style="padding: 12px 8px;">
+                                    <span
+                                        style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-size: 0.85rem; text-transform: capitalize;">
+                                        <%= user.role %>
+                                    </span>
+                                </td>
+                                <td style="padding: 12px 8px;">
+                                    <% if (user.isMobileVerified) { %>
+                                        <span style="color: #059669; font-weight: bold; font-size: 0.9rem;">Yes</span>
+                                        <% } else { %>
+                                            <span style="color: #dc2626; font-size: 0.9rem;">No</span>
+                                            <% } %>
+                                </td>
+                                <td style="padding: 12px 8px; color: #6b7280; font-size: 0.9rem;">
+                                    <%= new Date(user.createdAt).toLocaleDateString() %>
+                                </td>
+                            </tr>
+                            <% }) %>
+                                <% } else { %>
+                                    <tr>
+                                        <td colspan="6" style="text-align: center; padding: 30px; color: #6b7280;">
+                                            No registered users found in the database.
+                                        </td>
+                                    </tr>
+                                    <% } %>
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <%- include('footer') %>

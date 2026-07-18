@@ -1,244 +1,211 @@
-<%- include('header', { path: '/products' , admin: admin }) %>
+<%- include('header', { path: '/products', admin: admin }) %>
 
     <style>
-        .image-preview-container {
-            width: 100%;
-            max-width: 300px;
-            height: 200px;
-            border: 2px dashed var(--border-color);
-            border-radius: 0.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            margin-top: 10px;
-            background-color: var(--bg-color);
-            transition: var(--transition);
-            position: relative;
-        }
-
-        .image-preview-container.has-image {
-            border-style: solid;
-            border-color: var(--primary-color);
-            background-color: transparent;
-        }
-
-        .image-preview-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-            transition: transform 0.3s;
-        }
-
-        .image-preview-container:hover img {
-            transform: scale(1.05);
-        }
-
-        .form-group-interactive {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
+        .form-group-interactive { position: relative; margin-bottom: 1.5rem; }
         .form-control-interactive {
-            transition: all 0.3s;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 0.5rem;
-            background-color: #f8fafc;
-            color: var(--text-main);
-            font-family: inherit;
+            transition: all 0.3s; width: 100%; padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color); border-radius: 0.5rem;
+            background-color: #f8fafc; color: var(--text-main); font-family: inherit;
         }
-
         .form-control-interactive:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px var(--primary-light);
-            outline: none;
-            background-color: #fff;
+            border-color: var(--primary-color); box-shadow: 0 0 0 3px var(--primary-light);
+            outline: none; background-color: #fff;
         }
-
-        .upload-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-        }
-
-        @keyframes fade-in {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; margin-bottom: 10px; }
+        .upload-btn-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; }
+        @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
     <div style="margin-bottom: 20px; animation: fade-in 0.3s ease-out;">
-        <a href="/admin/products"
-            style="color: var(--text-muted); text-decoration: none; font-weight: 500; transition: color 0.3s;">
+        <a href="/admin/products" style="color: var(--text-muted); text-decoration: none; font-weight: 500;">
             <i class="fas fa-arrow-left" style="margin-right: 5px;"></i> Back to Products
         </a>
     </div>
 
     <div class="card" style="max-width: 800px; margin: 0 auto; animation: fade-in 0.5s ease-out;">
-        <div
-            style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
             <h2 style="margin: 0; color: var(--text-main);">Add New Product</h2>
         </div>
 
-        <% if (typeof success !=='undefined' && success) { %>
-            <div
-                style="background-color: #dcfce7; color: #166534; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #bbf7d0; animation: fade-in 0.3s; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> <span style="font-weight: 500;">Product
-                    Added Successfully!</span>
+        <% if (typeof success !== 'undefined' && success) { %>
+            <div style="background-color: #dcfce7; color: #166534; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border: 1px solid #bbf7d0; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i>
+                <span style="font-weight: 500;">Product Added Successfully!</span>
             </div>
-            <% } %>
+        <% } %>
 
-                <form action="/admin/products/add" method="POST" enctype="multipart/form-data" id="addProductForm">
-                    <div class="form-group form-group-interactive">
-                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Product Name</label>
-                        <input type="text" name="name" class="form-control-interactive" required
-                            placeholder="Enter product name">
-                    </div>
+        <form action="/admin/products/add" method="POST" enctype="multipart/form-data" id="addProductForm">
 
-                    <div class="form-group form-group-interactive">
-                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Description</label>
-                        <textarea name="description" class="form-control-interactive" rows="4" required
-                            placeholder="Enter product description"></textarea>
-                    </div>
+            <div class="form-group form-group-interactive">
+                <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Product Name</label>
+                <input type="text" name="name" class="form-control-interactive" required placeholder="Enter product name">
+            </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
-                        <div class="form-group form-group-interactive">
-                            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Price (₹)</label>
-                            <input type="number" name="price" class="form-control-interactive" step="0.01" required
-                                placeholder="e.g. 500">
-                        </div>
-                        <div class="form-group form-group-interactive">
-                            <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Count In
-                                Stock</label>
-                            <input type="number" name="countInStock" class="form-control-interactive" required
-                                placeholder="e.g. 100">
-                        </div>
-                    </div>
+            <div class="form-group form-group-interactive">
+                <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Description</label>
+                <textarea name="description" class="form-control-interactive" rows="4" required placeholder="Enter product description"></textarea>
+            </div>
 
-                    <div class="form-group form-group-interactive">
-                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Category</label>
-                        <input type="text" name="category" class="form-control-interactive" required
-                            list="category-list" placeholder="Select or type category">
-                        <datalist id="category-list">
-                            <option value="bamboo">
-                            <option value="rugs">
-                            <option value="khadi">
-                            <option value="moonj-sikki">
-                            <option value="painting">
-                            <option value="apparel">
-                        </datalist>
-                    </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Original Price / MRP (₹)</label>
+                    <input type="number" name="originalPrice" class="form-control-interactive" step="0.01" placeholder="e.g. 700">
+                    <small style="color: var(--text-muted); font-size: 0.8em; margin-top: 5px; display: block;">Leave blank if no discount.</small>
+                </div>
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Selling Price (₹)</label>
+                    <input type="number" name="price" class="form-control-interactive" step="0.01" required placeholder="e.g. 500">
+                </div>
+            </div>
 
-                    <div class="form-group" style="margin-bottom: 2rem;">
-                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Product Image</label>
-                        <div class="upload-btn-wrapper">
-                            <button class="btn btn-primary" type="button"
-                                style="background-color: var(--primary-light); color: var(--primary-dark); border: 1px solid var(--primary-color);">
-                                <i class="fas fa-cloud-upload-alt" style="margin-right: 8px;"></i> Upload image
-                            </button>
-                            <input type="file" name="image" id="imageUpload" accept="image/*">
-                        </div>
-                        <p style="margin: 8px 0; color: var(--text-muted); font-size: 0.9em; font-weight: 500;">Or enter
-                            image URL:</p>
-                        <input type="text" name="image" id="imageUrl" class="form-control-interactive"
-                            placeholder="http://...">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Discount Label</label>
+                    <input type="text" name="discount" class="form-control-interactive" placeholder="e.g. '15% OFF', 'SALE', 'HOT'">
+                </div>
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Count In Stock</label>
+                    <input type="number" name="countInStock" class="form-control-interactive" required placeholder="e.g. 100">
+                </div>
+            </div>
 
-                        <div class="image-preview-container" id="imagePreviewContainer">
-                            <img id="imagePreview" src="" alt="Product Preview" style="display: none;"
-                                onerror="this.style.display='none'; document.getElementById('imagePreviewText').style.display='block'; document.getElementById('imagePreviewContainer').classList.remove('has-image');">
-                            <span id="imagePreviewText"
-                                style="color: var(--text-muted); font-weight: 500; display: block;">
-                                <i class="fas fa-image"
-                                    style="font-size: 2rem; display: block; margin-bottom: 10px; opacity: 0.5;"></i>
-                                No image selected
-                            </span>
-                        </div>
-                    </div>
+            <!-- Category -->
+            <div class="form-group form-group-interactive">
+                <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Category</label>
+                <select name="category" id="categorySelect" class="form-control-interactive" required style="cursor: pointer;">
+                    <option value="" disabled selected>Select a category</option>
+                    <option value="bamboo">Bamboo</option>
+                    <option value="rugs">Rugs</option>
+                    <option value="moonj-sikki">Moonj &amp; Sikki</option>
+                    <option value="painting">Painting</option>
+                    <option value="apparel">Apparel</option>
+                    <option value="khadi">Khadi</option>
+                </select>
+            </div>
 
-                    <button type="submit" class="btn btn-primary" id="submitBtn"
-                        style="width: 100%; font-size: 1.1em; padding: 1rem; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;">
-                        <i class="fas fa-plus"></i> Create Product
+            <!-- Sub Category -->
+            <div class="form-group form-group-interactive">
+                <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Sub Category</label>
+                <select name="subCategory" id="subCategorySelect" class="form-control-interactive" style="cursor: pointer;">
+                    <option value="">— Select category first —</option>
+                </select>
+            </div>
+
+            <!-- Gallery -->
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Product Gallery</label>
+                <div class="upload-btn-wrapper">
+                    <button class="btn btn-primary" type="button" style="background-color: var(--primary-light); color: var(--primary-dark); border: 1px solid var(--primary-color);">
+                        <i class="fas fa-images" style="margin-right: 8px;"></i> Upload images
                     </button>
-                </form>
+                    <input type="file" name="images" id="imageUpload" accept="image/*" multiple>
+                </div>
+                <p id="fileCountText" style="margin-top: 5px; color: var(--primary-color); font-weight: 500; display: none;">0 files selected</p>
+                <p style="margin: 15px 0 8px 0; color: var(--text-muted); font-size: 0.9em; font-weight: 500;">Or enter image URLs (one per line):</p>
+                <textarea name="imageUrls" class="form-control-interactive" rows="4" placeholder="https://...&#10;https://..."></textarea>
+            </div>
+
+            <!-- Product Detail Information -->
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1.5rem; margin-top: 0.5rem;">
+                <h3 style="font-size: 1rem; color: var(--text-main); margin-bottom: 1.5rem; font-weight: 600;">Product Detail Information</h3>
+
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Material Used</label>
+                    <input type="text" name="material" class="form-control-interactive" placeholder="e.g. Natural Bamboo, Jute, Moonj Grass">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group form-group-interactive">
+                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Dimensions</label>
+                        <input type="text" name="dimensions" class="form-control-interactive" placeholder="e.g. 30cm Dia × 15cm H">
+                    </div>
+                    <div class="form-group form-group-interactive">
+                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Components</label>
+                        <input type="text" name="components" class="form-control-interactive" placeholder="e.g. 1× Handcrafted basket + lid">
+                    </div>
+                </div>
+
+                <div class="form-group form-group-interactive">
+                    <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Eco-Friendly Green Features</label>
+                    <textarea name="ecoFeatures" class="form-control-interactive" rows="4" placeholder="Enter eco-friendly highlights, one per line. e.g:&#10;100% natural biodegradable materials&#10;No harmful dyes used"></textarea>
+                    <small style="color: var(--text-muted); font-size: 0.8em;">Enter one feature per line — they appear as bullet points on the product page.</small>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="form-group form-group-interactive">
+                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Country of Origin</label>
+                        <input type="text" name="countryOfOrigin" class="form-control-interactive" value="India" placeholder="e.g. India">
+                    </div>
+                    <div class="form-group form-group-interactive">
+                        <label style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Artisan Image URL</label>
+                        <input type="url" name="artisanImageUrl" class="form-control-interactive" placeholder="https://... (photo of artisan making product)">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn"
+                style="width: 100%; font-size: 1.1em; padding: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 1rem;">
+                <i class="fas fa-plus"></i> Create Product
+            </button>
+        </form>
     </div>
 
     <script>
-        const imageUpload = document.getElementById('imageUpload');
-        const imageUrl = document.getElementById('imageUrl');
-        const imagePreview = document.getElementById('imagePreview');
-        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-        const imagePreviewText = document.getElementById('imagePreviewText');
-        const submitBtn = document.getElementById('submitBtn');
+        const subCategoryMap = {
+            'bamboo':      ['lantern', 'jewellery-cosmetic-box', 'laundry-bag', 'pen-stand', 'utility-box', 'tokri', 'wall-hanging'],
+            'rugs':        ['doormat', 'aasan', 'yoga-mat', 'runner', 'floor-rugs'],
+            'moonj-sikki': ['jewellery-cosmetic-box', 'laundry-bag', 'pen-stand', 'utility-box', 'tokri', 'wall-hanging', 'lantern'],
+            'painting':    ['madhubani', 'warli', 'miniature', 'pattachitra', 'other'],
+            'apparel':     ['shirts', 'pants', 'silk-fabric', 'cotton-fabric', 'dupatta', 'saree'],
+            'khadi':       ['shirts', 'pants', 'silk-fabric', 'cotton-fabric', 'kurta', 'fabric-roll'],
+        };
 
-        function updateImagePreview(src) {
-            if (src) {
-                imagePreview.src = src;
-                imagePreview.style.display = 'block';
-                imagePreviewText.style.display = 'none';
-                imagePreviewContainer.classList.add('has-image');
-            } else {
-                imagePreview.src = '';
-                imagePreview.style.display = 'none';
-                imagePreviewText.style.display = 'block';
-                imagePreviewContainer.classList.remove('has-image');
+        const categorySelect    = document.getElementById('categorySelect');
+        const subCategorySelect = document.getElementById('subCategorySelect');
+
+        function populateSubCategories(cat, currentValue) {
+            subCategorySelect.innerHTML = '';
+            const subs = subCategoryMap[cat] || [];
+            if (!cat || subs.length === 0) {
+                subCategorySelect.innerHTML = '<option value="">— No subcategories —</option>';
+                return;
             }
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '— Select subcategory —';
+            subCategorySelect.appendChild(placeholder);
+            subs.forEach(function(sub) {
+                const opt = document.createElement('option');
+                opt.value = sub;
+                opt.textContent = sub.replace(/-/g, ' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+                if (currentValue && sub === currentValue) opt.selected = true;
+                subCategorySelect.appendChild(opt);
+            });
         }
 
-        imageUpload.addEventListener('change', function () {
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    updateImagePreview(e.target.result);
-                    imageUrl.value = ''; // clear url input
-                }
-                reader.readAsDataURL(this.files[0]);
-            }
+        categorySelect.addEventListener('change', function() {
+            populateSubCategories(categorySelect.value, null);
         });
 
-        imageUrl.addEventListener('input', function () {
-            if (this.value) {
-                updateImagePreview(this.value);
-                imageUpload.value = ''; // clear file input
+        // Init on load
+        if (categorySelect.value) populateSubCategories(categorySelect.value, null);
+
+        // File upload counter
+        document.getElementById('imageUpload').addEventListener('change', function() {
+            const txt = document.getElementById('fileCountText');
+            if (this.files && this.files.length > 0) {
+                txt.style.display = 'block';
+                txt.textContent = this.files.length + ' file(s) selected.';
             } else {
-                updateImagePreview('');
+                txt.style.display = 'none';
             }
         });
 
-        // Button interactions for tactile feel
-        submitBtn.addEventListener('mousedown', () => submitBtn.style.transform = 'scale(0.98)');
-        submitBtn.addEventListener('mouseup', () => submitBtn.style.transform = 'scale(1)');
-        submitBtn.addEventListener('mouseleave', () => submitBtn.style.transform = 'scale(1)');
-
-        // Add interaction to inputs for better UX
-        const inputs = document.querySelectorAll('.form-control-interactive');
-        inputs.forEach(input => {
-            input.addEventListener('focus', () => {
-                input.parentElement.style.transform = 'translateY(-2px)';
-                input.parentElement.style.transition = 'transform 0.3s';
-            });
-            input.addEventListener('blur', () => {
-                input.parentElement.style.transform = 'translateY(0)';
-            });
-        });
+        // Submit button press effect
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.addEventListener('mousedown',  function(){ this.style.transform = 'scale(0.98)'; });
+        submitBtn.addEventListener('mouseup',    function(){ this.style.transform = 'scale(1)'; });
+        submitBtn.addEventListener('mouseleave', function(){ this.style.transform = 'scale(1)'; });
     </script>
 
-    <%- include('footer') %>
+<%- include('footer') %>

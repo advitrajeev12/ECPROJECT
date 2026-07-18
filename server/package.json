@@ -19,9 +19,15 @@
     "dotenv": "^17.2.4",
     "ejs": "^4.0.1",
     "express": "^5.2.1",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.5.1",
     "express-session": "^1.19.0",
+    "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.6",
     "multer": "^2.0.2",
-    "nodemon": "^3.1.11"
+    "nodemailer": "^8.0.4",
+    "nodemon": "^3.1.11",
+    "xss": "^1.0.15"
   }
 }

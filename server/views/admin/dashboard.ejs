@@ -1,8 +1,18 @@
-<%- include('header', { path: '/dashboard' , admin: admin }) %>
+<%- include('header', { path: '/dashboard' , admin: admin, title: 'Dashboard' }) %>
 
-    <div style="margin-bottom: 2rem;">
-        <h2 style="font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--text-main);">Dashboard Overview</h2>
-        <p style="color: var(--text-muted);">Here is what's happening with your store today.</p>
+    <div style="margin-bottom: 2.5rem; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h2 style="font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 0.5rem; color: var(--secondary-color);">Store Analytics</h2>
+            <p style="color: var(--text-muted); font-size: 1rem;">Real-time overview of your store's performance.</p>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button class="btn" style="background: white; border: 1px solid var(--border-color); color: var(--text-muted); padding: 0.65rem 1.25rem;">
+                <i class="fas fa-download"></i> Export Report
+            </button>
+            <button class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Product
+            </button>
+        </div>
     </div>
 
     <div class="card-grid">
@@ -12,9 +22,10 @@
             </div>
             <div class="stat-details">
                 <h3>Total Orders</h3>
-                <div class="value">
-                    <%= orderCount %>
-                </div>
+                <div class="value"><%= orderCount %></div>
+            </div>
+            <div style="position: absolute; right: 0; bottom: 0; opacity: 0.05; font-size: 5rem; transform: translate(20%, 20%);">
+                <i class="fas fa-shopping-bag"></i>
             </div>
         </div>
 
@@ -24,8 +35,10 @@
             </div>
             <div class="stat-details">
                 <h3>Total Sales</h3>
-                <div class="value">₹<%= totalSales %>
-                </div>
+                <div class="value">₹<%= totalSales.toLocaleString('en-IN') %></div>
+            </div>
+            <div style="position: absolute; right: 0; bottom: 0; opacity: 0.05; font-size: 5rem; transform: translate(20%, 20%);">
+                <i class="fas fa-rupee-sign"></i>
             </div>
         </div>
 
@@ -35,9 +48,10 @@
             </div>
             <div class="stat-details">
                 <h3>Total Products</h3>
-                <div class="value">
-                    <%= productCount %>
-                </div>
+                <div class="value"><%= productCount %></div>
+            </div>
+            <div style="position: absolute; right: 0; bottom: 0; opacity: 0.05; font-size: 5rem; transform: translate(20%, 20%);">
+                <i class="fas fa-box"></i>
             </div>
         </div>
 
@@ -47,23 +61,97 @@
             </div>
             <div class="stat-details">
                 <h3>Total Users</h3>
-                <div class="value">
-                    <%= userCount %>
-                </div>
+                <div class="value"><%= userCount %></div>
+            </div>
+            <div style="position: absolute; right: 0; bottom: 0; opacity: 0.05; font-size: 5rem; transform: translate(20%, 20%);">
+                <i class="fas fa-users"></i>
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">Recent Activity</h3>
-            <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">View All</button>
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; margin-bottom: 2.5rem;">
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <h3 class="card-title">Sales Overview</h3>
+                <select class="form-control" style="width: auto; padding: 0.4rem 1rem; font-size: 0.85rem;">
+                    <option>Last 7 Days</option>
+                    <option>Last 30 Days</option>
+                </select>
+            </div>
+            <canvas id="salesChart" height="120"></canvas>
         </div>
-        <div style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
-            <i class="fas fa-history" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--border-color);"></i>
-            <p style="font-size: 1.1rem; font-weight: 500;">No recent activity recorded.</p>
-            <p style="font-size: 0.9rem;">When activities happen, they'll show up here.</p>
+
+        <div class="card" style="margin-bottom: 0;">
+            <div class="card-header">
+                <h3 class="card-title">Recent Activity</h3>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--primary-color); margin-top: 0.5rem;"></div>
+                    <div>
+                        <p style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">New Order #<%= orderCount + 1024 %></p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Just now • By Guest</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #3b82f6; margin-top: 0.5rem;"></div>
+                    <div>
+                        <p style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">Product Updated</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">2 hours ago • By Admin</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: flex-start;">
+                    <div style="width: 8px; height: 8px; border-radius: 50%; background: #f59e0b; margin-top: 0.5rem;"></div>
+                    <div>
+                        <p style="font-size: 0.95rem; font-weight: 600; margin-bottom: 0.2rem;">Inventory Low</p>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">5 hours ago • Bamboo Pen Stand</p>
+                    </div>
+                </div>
+            </div>
+            <button class="btn" style="width: 100%; margin-top: 2rem; background: #f8fafc; color: var(--text-muted); font-size: 0.85rem;">
+                View All Activity
+            </button>
         </div>
     </div>
 
-    <%- include('footer') %>
+    <script>
+        const ctx = document.getElementById('salesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Sales (₹)',
+                    data: [12000, 19000, 15000, 25000, 22000, 30000, 45000],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#10b981',
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { borderDash: [5, 5], color: '#e2e8f0' },
+                        ticks: { font: { family: 'Outfit' } }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Outfit' } }
+                    }
+                }
+            }
+        });
+    </script>
+
+<%- include('footer') %>

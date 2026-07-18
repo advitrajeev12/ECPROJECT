@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Identity - Admin Portal</title>
+    <link rel="stylesheet" href="/css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-icon" style="background: var(--primary-light); color: var(--primary-color);">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2 class="auth-title">Two-Step Verification</h2>
+            <p class="auth-subtitle">Confirm the code sent to your email.</p>
+        </div>
+
+        <% if (error) { %>
+            <div class="error-alert">
+                <i class="fas fa-exclamation-circle"></i>
+                <span><%= error %></span>
+            </div>
+        <% } %>
+
+        <% if (dev_otp) { %>
+            <div style="background: rgba(245, 158, 11, 0.1); border: 1px dashed var(--accent-color); color: var(--accent-color); padding: 1rem; border-radius: 1rem; font-size: 0.85rem; margin-bottom: 2rem; text-align: center;">
+                <i class="fas fa-bug" style="margin-right: 5px;"></i> <b>DEV_MODE:</b> Verification code is <code style="font-weight: 800; font-size: 1.1rem; margin-left: 5px;"><%= dev_otp %></code>
+            </div>
+        <% } %>
+
+        <form action="<%= actionUrl %>" method="POST">
+            <div class="form-group">
+                <label>6-Digit Verification Code</label>
+                <div style="position: relative;">
+                    <i class="fas fa-key" style="position: absolute; left: 1.25rem; top: 1rem; color: var(--text-muted);"></i>
+                    <input type="text" name="otp" class="form-control" required placeholder="000000" maxlength="6" 
+                        style="padding-left: 3rem; font-family: 'Space Mono', monospace; font-size: 1.25rem; letter-spacing: 0.5rem; font-weight: 700;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">
+                Verify & Sign In <i class="fas fa-check-circle" style="margin-left: 8px;"></i>
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <span style="color: var(--text-muted); font-size: 0.95rem;">Mistake in email?</span>
+            <a href="/admin/login" class="auth-link" style="margin-left: 0.5rem;">Start over</a>
+        </div>
+    </div>
+
+    <!-- Decorative Elements -->
+    <div style="position: fixed; top: -10%; right: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%); z-index: -1;"></div>
+    <div style="position: fixed; bottom: -10%; left: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%); z-index: -1;"></div>
+</body>
+
+</html>

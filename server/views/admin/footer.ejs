@@ -1,5 +1,19 @@
-</div> <!-- End content-wrapper -->
-</main> <!-- End main-content -->
+</div> <!--        </div>
+    </main>
+
+    <script>
+        // Close sidebar on mobile when clicking outside
+        document.addEventListener('click', (e) => {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.mobile-menu-toggle');
+            if (sidebar && toggle && window.innerWidth <= 1024 && 
+                !sidebar.contains(e.target) && 
+                !toggle.contains(e.target) && 
+                sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+            }
+        });
+    </script>
 </body>
 
 </html>

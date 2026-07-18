@@ -14,6 +14,14 @@ const productSchema = new mongoose.Schema({
         required: true,
         default: 0,
     },
+    originalPrice: {
+        type: Number,
+        default: 0,
+    },
+    discount: {
+        type: String,
+        default: '',
+    },
     image: {
         type: String,
         required: true,
@@ -26,6 +34,10 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    subCategory: {
+        type: String,
+        default: '',
+    },
     sizes: {
         type: [String],
         default: [],
@@ -35,6 +47,26 @@ const productSchema = new mongoose.Schema({
         default: [],
     },
     material: {
+        type: String,
+        default: '',
+    },
+    dimensions: {
+        type: String,
+        default: '',
+    },
+    components: {
+        type: String,
+        default: '',
+    },
+    ecoFeatures: {
+        type: String,
+        default: '',
+    },
+    countryOfOrigin: {
+        type: String,
+        default: 'India',
+    },
+    artisanImage: {
         type: String,
         default: '',
     },

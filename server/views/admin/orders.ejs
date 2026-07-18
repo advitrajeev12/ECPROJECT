@@ -96,8 +96,16 @@
                     <% if (typeof orders !=='undefined' && orders.length> 0) { %>
                         <% orders.forEach(order=> { %>
                             <tr>
-                                <td style="padding-left: 2rem; font-family: monospace; color: var(--text-muted);">
-                                    #<%= order._id.toString().substring(order._id.toString().length - 8) %>
+                                <td style="padding-left: 2rem; color: var(--text-muted);">
+                                    <div style="font-family: monospace; margin-bottom: 8px;">#<%= order._id.toString().substring(order._id.toString().length - 8) %></div>
+                                    <div style="display: flex; gap: 4px; flex-wrap: wrap; max-width: 140px;">
+                                        <% if (order.orderItems && order.orderItems.length > 0) { %>
+                                            <% order.orderItems.forEach(item => { %>
+                                                <% let imgSrc = item.image ? (item.image.startsWith('http') || item.image.startsWith('data:') ? item.image : (item.image.startsWith('/') ? item.image : '/' + item.image)) : '/placeholder.jpg'; %>
+                                                <img src="<%= imgSrc %>" alt="Product" title="<%= item.name %> (x<%= item.qty %>)" style="width: 36px; height: 36px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0; background: #fff; cursor: help;">
+                                            <% }) %>
+                                        <% } %>
+                                    </div>
                                 </td>
                                 <td>
                                     <div style="font-weight: 500;">

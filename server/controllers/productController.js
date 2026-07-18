@@ -47,7 +47,7 @@ const getProductById = async (req, res) => {
 // @access  Private/Admin
 const updateProduct = async (req, res) => {
     try {
-        const { name, price, description, image, category, countInStock } = req.body;
+        const { name, price, description, image, images, category, countInStock } = req.body;
 
         const product = await Product.findById(req.params.id);
 
@@ -56,6 +56,7 @@ const updateProduct = async (req, res) => {
             product.price = price !== undefined ? price : product.price;
             product.description = description || product.description;
             product.image = image || product.image;
+            if (images !== undefined) product.images = images;
             product.category = category || product.category;
             product.countInStock = countInStock !== undefined ? countInStock : product.countInStock;
 

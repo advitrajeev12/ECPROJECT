@@ -16,47 +16,47 @@
                 <i class="fas fa-user-shield"></i>
             </div>
             <h2 class="auth-title">Admin Portal</h2>
-            <p class="auth-subtitle">Welcome back! Please login to your account.</p>
+            <p class="auth-subtitle">Secure access to your dashboard.</p>
         </div>
 
         <% if (error) { %>
             <div class="error-alert">
                 <i class="fas fa-exclamation-circle"></i>
-                <span>
-                    <%= error %>
-                </span>
+                <span><%= error %></span>
             </div>
-            <% } %>
+        <% } %>
 
-                <form action="/admin/login" method="POST">
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <div style="position: relative;">
-                            <i class="fas fa-envelope"
-                                style="position: absolute; left: 1rem; top: 1rem; color: var(--text-muted);"></i>
-                            <input type="email" name="email" class="form-control" required
-                                placeholder="admin@example.com" style="padding-left: 2.75rem;">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Password</label>
-                        <div style="position: relative;">
-                            <i class="fas fa-lock"
-                                style="position: absolute; left: 1rem; top: 1rem; color: var(--text-muted);"></i>
-                            <input type="password" name="password" class="form-control" required placeholder="••••••••"
-                                style="padding-left: 2.75rem;">
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">
-                        Login to Dashboard <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
-                    </button>
-                </form>
-
-                <div class="auth-footer">
-                    <span style="color: var(--text-muted); font-size: 0.95rem;">Don't have access?</span>
-                    <a href="/admin/signup" class="auth-link" style="margin-left: 0.25rem;">Create Admin Account</a>
+        <form action="/admin/login" method="POST">
+            <div class="form-group">
+                <label>Email Address</label>
+                <div style="position: relative;">
+                    <i class="fas fa-envelope" style="position: absolute; left: 1.25rem; top: 1rem; color: var(--text-muted);"></i>
+                    <input type="email" name="email" class="form-control" required placeholder="admin@example.com" style="padding-left: 3rem;">
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div style="position: relative;">
+                    <i class="fas fa-lock" style="position: absolute; left: 1.25rem; top: 1rem; color: var(--text-muted);"></i>
+                    <input type="password" name="password" class="form-control" required placeholder="••••••••" style="padding-left: 3rem;">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1rem;">
+                Continue <i class="fas fa-arrow-right" style="margin-left: 8px;"></i>
+            </button>
+        </form>
+
+        <% if (!adminExists) { %>
+            <div class="auth-footer">
+                <span style="color: var(--text-muted); font-size: 0.95rem;">System Setup Required?</span>
+                <a href="/admin/signup" class="auth-link" style="margin-left: 0.5rem;">Create First Admin</a>
+            </div>
+        <% } %>
     </div>
+
+    <!-- Decorative Elements -->
+    <div style="position: fixed; top: -10%; right: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(16, 185, 129, 0.05) 0%, transparent 70%); z-index: -1;"></div>
+    <div style="position: fixed; bottom: -10%; left: -10%; width: 40%; height: 40%; background: radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%); z-index: -1;"></div>
 </body>
 
 </html>

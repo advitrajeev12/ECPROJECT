@@ -4,17 +4,7 @@ import path from 'path';
 
 const router = express.Router();
 
-const storage = multer.diskStorage({
-    destination(req, file, cb) {
-        cb(null, 'public/uploads/');
-    },
-    filename(req, file, cb) {
-        cb(
-            null,
-            `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-        );
-    },
-});
+const storage = multer.memoryStorage();
 
 function checkFileType(file, cb) {
     const filetypes = /jpg|jpeg|png/;
@@ -36,7 +26,12 @@ const upload = multer({
 });
 
 router.post('/', upload.single('image'), (req, res) => {
-    res.send(`/${req.file.path.replace('public/', '')}`);
+    if (req.file) {
+        const base64Image = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+        res.send(base64Image);
+    } else {
+        res.status(400).send('No image uploaded');
+    }
 });
 
 export default router;
