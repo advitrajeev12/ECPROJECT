@@ -7,103 +7,11 @@ import { ROUTES } from "@/lib/routes";
 const AuthContext = createContext();
 const API_URL = "";
 
-// ─── MSG91 Config ───────────────────────────────────────────────────────────────
-const MSG91_WIDGET_ID  = process.env.NEXT_PUBLIC_MSG91_WIDGET_ID  || "366770713237323830393539";
-const MSG91_TOKEN_AUTH = process.env.NEXT_PUBLIC_MSG91_TOKEN_AUTH || "551060T6Xda2sFUz6a59e623P1";
-
-const MSG91_SDK_URLS = [
-    "https://verify.msg91.com/otp-provider.js",
-    "https://verify.phone91.com/otp-provider.js"
-];
-
-// ─── Format mobile helper ────────────────────────────────────────────────────────
-const formatMobileForMsg91 = (mobile) => {
-    const digits = String(mobile).replace(/\D/g, "");
-    if (digits.length === 10) return `91${digits}`;
-    if (digits.length === 12 && digits.startsWith("91")) return digits;
-    return digits;
-};
-
-// ─── Bootstrap MSG91 Widget ─────────────────────────────────────────────────────
-const bootstrapMsg91Widget = () => {
-    if (typeof window === "undefined") return;
-
-    const configuration = {
-        widgetId: MSG91_WIDGET_ID,
-        tokenAuth: MSG91_TOKEN_AUTH,
-        exposeMethods: true,
-        success: (data) => {
-            console.log("[MSG91 Widget] Verification success callback:", data);
-        },
-        failure: (error) => {
-            console.error("[MSG91 Widget] Verification failure callback:", error);
-        }
-    };
-
-    // Already loaded
-    if (typeof window.initSendOTP === "function") {
-        window.initSendOTP(configuration);
-        console.log("[MSG91] Widget initialized.");
-        return;
-    }
-
-    let urlIndex = 0;
-
-    const onScriptLoaded = () => {
-        if (typeof window.initSendOTP === "function") {
-            window.initSendOTP(configuration);
-            console.log("[MSG91] Widget loaded & initialized.");
-        } else {
-            console.warn("[MSG91] Script loaded but initSendOTP function not found.");
-        }
-    };
-
-    const loadNext = () => {
-        if (urlIndex >= MSG91_SDK_URLS.length) {
-            console.error("[MSG91] All SDK URLs failed to load.");
-            return;
-        }
-
-        const url = MSG91_SDK_URLS[urlIndex];
-        const existing = document.querySelector(`script[src="${url}"]`);
-        if (existing) {
-            if (typeof window.initSendOTP === "function") {
-                onScriptLoaded();
-            } else {
-                existing.addEventListener("load", onScriptLoaded, { once: true });
-            }
-            return;
-        }
-
-        const script = document.createElement("script");
-        script.src = url;
-        script.async = true;
-        script.onload = onScriptLoaded;
-        script.onerror = () => {
-            urlIndex++;
-            loadNext();
-        };
-        document.head.appendChild(script);
-    };
-
-    loadNext();
-};
-
-// ─── Wait for SDK method helper ────────────────────────────────────────────────
-const waitForMethod = (methodName, maxAttempts = 35) => {
-    return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const interval = setInterval(() => {
-            if (typeof window[methodName] === "function") {
-                clearInterval(interval);
-                resolve(window[methodName]);
-            } else if (++attempts >= maxAttempts) {
-                clearInterval(interval);
-                reject(new Error(`MSG91 '${methodName}' not ready. Check your Widget configuration.`));
-            }
-        }, 100);
-    });
-};
+// OTP is verified entirely server-side (Twilio Verify), so there are NO OTP
+// provider credentials or SDKs in the browser. The client just:
+//   1. POST /api/users/send-otp   { mobile }
+//   2. POST /api/users/verify-otp { mobile, otp }   (login)
+//      POST /api/users/signup     { ...details, otp } (signup)
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser]       = useState(null);
@@ -112,7 +20,6 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         checkUserLoggedIn();
-        bootstrapMsg91Widget();
     }, []);
 
     // ── Check if user is already logged in (via JWT cookie) ───────────────────
@@ -147,66 +54,32 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // ── STEP 1: Send OTP via Widget Method ────────────────────────────────────
+    // ── STEP 1: Send OTP (backend → Twilio Verify) ────────────────────────────
     const sendOtp = async (mobile) => {
-        const formattedMobile = formatMobileForMsg91(mobile);
         try {
-            const sendOtpFn = await waitForMethod("sendOtp");
-            return await new Promise((resolve) => {
-                sendOtpFn(
-                    formattedMobile,
-                    (data) => {
-                        console.log("[MSG91 SDK] Send OTP success:", data);
-                        resolve({ success: true, data });
-                    },
-                    (error) => {
-                        console.error("[MSG91 SDK] Send OTP failure:", error);
-                        resolve({ success: false, message: error?.message || "Failed to send OTP" });
-                    }
-                );
-            });
+            const res = await axios.post(
+                `${API_URL}/api/users/send-otp`,
+                { mobile },
+                { withCredentials: true }
+            );
+            return { success: true, mock: res.data?.mock === true, message: res.data?.message };
         } catch (error) {
-            console.error("[AuthContext] sendOtp error:", error.message);
-            return { success: false, message: error.message };
+            return {
+                success: false,
+                message: error.response?.data?.message || "Failed to send OTP"
+            };
         }
     };
 
-    // ── STEP 1b: Resend OTP via Widget Method ─────────────────────────────────
-    const resendOtp = async (mobile) => {
-        return sendOtp(mobile);
-    };
+    const resendOtp = async (mobile) => sendOtp(mobile);
+    const sendSignupOtp = async (mobile) => sendOtp(mobile);
 
-    // ── Helper to verify OTP via Widget and return Access Token ────────────────
-    const verifyOtpAndGetToken = async (otp) => {
-        const verifyOtpFn = await waitForMethod("verifyOtp");
-        return await new Promise((resolve, reject) => {
-            verifyOtpFn(
-                otp,
-                (data) => {
-                    console.log("[MSG91 SDK] Verify OTP success:", data);
-                    // Extract access token
-                    const token = data?.token || data?.accessToken || (typeof data === "string" ? data : null);
-                    if (!token) {
-                        reject(new Error("OTP verified, but access token not found in response."));
-                    } else {
-                        resolve(token);
-                    }
-                },
-                (error) => {
-                    console.error("[MSG91 SDK] Verify OTP failure:", error);
-                    reject(new Error(error?.message || "Invalid OTP. Please try again."));
-                }
-            );
-        });
-    };
-
-    // ── STEP 2: Verify Widget OTP + Backend Login ──────────────────────────────
+    // ── STEP 2: Verify OTP + Login ────────────────────────────────────────────
     const loginWithOtp = async (mobile, otp) => {
         try {
-            const accessToken = await verifyOtpAndGetToken(otp);
             const res = await axios.post(
-                `${API_URL}/api/users/verify-msg91-otp`,
-                { accessToken },
+                `${API_URL}/api/users/verify-otp`,
+                { mobile, otp },
                 { withCredentials: true }
             );
             setUser(res.data.user);
@@ -214,28 +87,30 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || error.message || "OTP verification failed"
+                message: error.response?.data?.message || "OTP verification failed"
             };
         }
     };
 
-    // ── Signup: Send OTP (same as sendOtp) ────────────────────────────────────
-    const sendSignupOtp = async (mobile) => sendOtp(mobile);
-
-    // ── Signup: Verify Widget OTP + Backend Account Creation ─────────────────
+    // ── Signup: create account after OTP verification ─────────────────────────
     const signup = async (userData) => {
         try {
-            const accessToken = await verifyOtpAndGetToken(userData.otp);
             const res = await axios.post(
                 `${API_URL}/api/users/signup`,
-                { ...userData, msg91AccessToken: accessToken },
+                {
+                    name: userData.name,
+                    email: userData.email,
+                    password: userData.password,
+                    mobile: userData.mobile,
+                    otp: userData.otp,
+                },
                 { withCredentials: true }
             );
             return { success: true, message: res.data.message };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || error.message || "Signup failed"
+                message: error.response?.data?.message || "Signup failed"
             };
         }
     };

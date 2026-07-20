@@ -2,7 +2,7 @@ import express from 'express';
 import User from '../../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { verifyMsg91Token } from '../../utils/msg91Service.js';
+import { checkOtp as checkMobileOtp } from '../../utils/fast2smsService.js';
 
 const router = express.Router();
 
@@ -64,18 +64,18 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Verify OTP Widget access token
+// Verify mobile OTP (Twilio Verify)
 router.post('/verify-otp', async (req, res) => {
-    const { accessToken } = req.body;
+    const { mobile, otp } = req.body;
 
-    if (!accessToken) {
-        return res.status(400).json({ success: false, message: 'MSG91 Access Token is required' });
+    if (!mobile || !otp) {
+        return res.status(400).json({ success: false, message: 'Mobile number and OTP are required' });
     }
 
     try {
-        const { mobile } = await verifyMsg91Token(accessToken);
+        const { mobile: verifiedMobile } = await checkMobileOtp(mobile, otp);
 
-        const user = await User.findOne({ mobile }).lean();
+        const user = await User.findOne({ mobile: verifiedMobile }).lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found. Please sign up first.' });
         }

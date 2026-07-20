@@ -77,12 +77,14 @@ app.use(cookieParser());
 // 1. HTTP Security Headers
 const cspDirectives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://verify.msg91.com", "https://verify.phone91.com", "https://control.msg91.com"],
+    // OTP is now verified server-side via Twilio Verify (no browser widget/SDK),
+    // so no OTP-provider domains are needed in the client-facing CSP.
+    "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
     "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com", "https://drive.google.com", "https://images.unsplash.com", "*"],
     "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
-    "connect-src": ["'self'", "http://127.0.0.1:5001", "http://localhost:5001", "http://192.168.0.100:5001", "http://172.20.10.2:5001", "https://control.msg91.com", "https://verify.msg91.com", "https://verify.phone91.com", "https://api.msg91.com"],
-    "frame-src": ["'self'", "https://verify.msg91.com", "https://verify.phone91.com", "https://control.msg91.com"],
+    "connect-src": ["'self'", "http://127.0.0.1:5001", "http://localhost:5001", "http://192.168.0.100:5001", "http://172.20.10.2:5001", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+    "frame-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
     "frame-ancestors": ["'self'"],
 };
 
@@ -147,7 +149,7 @@ const authLimiter = rateLimit({
 });
 app.use('/api/users/login', authLimiter);
 app.use('/api/users/signup', authLimiter);
-app.use('/api/users/verify-msg91-otp', authLimiter);
+app.use('/api/users/verify-otp', authLimiter);
 
 // OTP rate limiter — relaxed in dev so testing doesn't get blocked
 const otpLimiter = rateLimit({

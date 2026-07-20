@@ -27,7 +27,7 @@ function StatusContent() {
 
         const checkStatus = async () => {
             try {
-                const url = `/api/orders/phonepe/status/${transactionId}${isSimulated ? "?sim=1" : ""}`;
+                const url = `/api/orders/razorpay/status/${transactionId}${isSimulated ? "?sim=1" : ""}`;
                 const res = await axios.get(url, { withCredentials: true });
 
                 if (res.data.success) {

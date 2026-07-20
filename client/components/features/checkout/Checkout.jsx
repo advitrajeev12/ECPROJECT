@@ -11,6 +11,29 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { MapPin, CreditCard, CheckCircle2, ShoppingBag, Star, Wallet, ShieldCheck, CheckSquare, CheckCircle, TicketPercent, Lock, ArrowRight } from "lucide-react";
 
+const RAZORPAY_SCRIPT_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+// Lazily inject the Razorpay Checkout SDK. Resolves true once window.Razorpay
+// is available (or if it was already loaded).
+const loadRazorpayScript = () =>
+    new Promise((resolve) => {
+        if (typeof window === "undefined") return resolve(false);
+        if (window.Razorpay) return resolve(true);
+
+        const existing = document.querySelector(`script[src="${RAZORPAY_SCRIPT_SRC}"]`);
+        if (existing) {
+            existing.addEventListener("load", () => resolve(true), { once: true });
+            existing.addEventListener("error", () => resolve(false), { once: true });
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = RAZORPAY_SCRIPT_SRC;
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+    });
+
 export default function Checkout() {
     const { cartItems, getCartTotal, clearCart } = useCart();
     const { formatPrice } = useCurrency();
@@ -26,7 +49,7 @@ export default function Checkout() {
     const [newAddress, setNewAddress] = useState({ street: '', city: '', state: '', zipCode: '', country: "India", isDefault: false });
     
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-    const [isRedirectingToPhonePe, setIsRedirectingToPhonePe] = useState(false);
+    const [isRedirectingToGateway, setIsRedirectingToGateway] = useState(false);
 
     useEffect(() => {
         if (!loading && !user) {
@@ -114,15 +137,73 @@ export default function Checkout() {
             };
 
             if (paymentMethod !== 'COD') {
-                // Online Payment via PhonePe
-                const res = await axios.post('/api/orders/phonepe/pay', payload, { withCredentials: true });
-                if (res.data.success && res.data.url) {
-                    // Show redirect overlay before navigating away
-                    setIsRedirectingToPhonePe(true);
+                // Online Payment via Razorpay
+                const res = await axios.post('/api/orders/razorpay/pay', payload, { withCredentials: true });
+
+                if (!res.data.success) {
+                    toast.error(res.data.message || "Failed to initiate payment.");
+                    return;
+                }
+
+                // Simulation mode (fake/no keys) — reuse the sim status redirect.
+                if (res.data.simulated) {
+                    setIsRedirectingToGateway(true);
                     setTimeout(() => {
                         window.location.href = res.data.url;
                     }, 800);
+                    return;
                 }
+
+                // Real mode — open the Razorpay Checkout modal.
+                const loaded = await loadRazorpayScript();
+                if (!loaded) {
+                    toast.error("Could not load payment gateway. Check your connection.");
+                    return;
+                }
+
+                const { orderId, razorpayOrderId, amount, currency, keyId } = res.data;
+
+                const rzp = new window.Razorpay({
+                    key: keyId,
+                    amount,
+                    currency,
+                    name: "Bal Jyoti Design",
+                    description: "Handcrafted goods order",
+                    order_id: razorpayOrderId,
+                    prefill: {
+                        name: user?.name || "",
+                        email: user?.email || "",
+                        contact: user?.mobile || "",
+                    },
+                    theme: { color: "#5f259f" },
+                    handler: async (response) => {
+                        // Verify signature server-side, then move to the status page.
+                        setIsRedirectingToGateway(true);
+                        try {
+                            await axios.post('/api/orders/razorpay/verify', {
+                                orderId,
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature,
+                            }, { withCredentials: true });
+                        } catch (err) {
+                            console.error("Verify error", err);
+                        }
+                        window.location.href = `/user/payment/status?transactionId=${orderId}`;
+                    },
+                    modal: {
+                        ondismiss: () => {
+                            toast("Payment cancelled.", { icon: "⚠️" });
+                        },
+                    },
+                });
+
+                rzp.on('payment.failed', () => {
+                    toast.error("Payment failed. Please try again.");
+                });
+
+                rzp.open();
+                return;
             } else {
                 // COD Flow
                 const res = await axios.post('/api/orders', payload, { withCredentials: true });
@@ -306,9 +387,9 @@ export default function Checkout() {
 
                                         {paymentMethod !== 'COD' && (
                                             <>
-                                                <h3 className="font-bold text-[#282c3f] mb-6 text-[15px]">Online Payment secured by PhonePe</h3>
+                                                <h3 className="font-bold text-[#282c3f] mb-6 text-[15px]">Online Payment secured by Razorpay</h3>
 
-                                                {/* PhonePe Info Card */}
+                                                {/* Razorpay Info Card */}
                                                 <div className="border border-[#5f259f]/20 bg-[#5f259f]/5 rounded-xl p-5 mb-6 flex items-start gap-4">
                                                     <div className="mt-0.5 w-9 h-9 rounded-lg bg-[#5f259f] flex items-center justify-center flex-shrink-0">
                                                         <Lock size={16} className="text-white" />
@@ -316,7 +397,7 @@ export default function Checkout() {
                                                     <div>
                                                         <p className="text-sm font-bold text-[#282c3f] mb-1">Secure 256-bit Encrypted Payment</p>
                                                         <p className="text-[12px] text-[#535766] leading-relaxed">
-                                                            You will be redirected to PhonePe to complete your <span className="font-semibold">{paymentMethod}</span> payment. Supports UPI, Cards, Net Banking &amp; Wallets.
+                                                            A Razorpay window will open to complete your <span className="font-semibold">{paymentMethod}</span> payment. Supports UPI, Cards, Net Banking &amp; Wallets.
                                                         </p>
                                                     </div>
                                                 </div>
@@ -336,7 +417,7 @@ export default function Checkout() {
                                                     {isPlacingOrder ? (
                                                         <>
                                                             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                            Connecting to PhonePe...
+                                                            Connecting to Razorpay...
                                                         </>
                                                     ) : (
                                                         <>
@@ -406,15 +487,15 @@ export default function Checkout() {
                 </div>
             </div>
             
-        {/* PhonePe Redirect Overlay */}
-        {isRedirectingToPhonePe && (
+        {/* Payment Redirect Overlay */}
+        {isRedirectingToGateway && (
             <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
                 <div className="flex flex-col items-center gap-6 text-center px-6">
                     <div className="w-20 h-20 rounded-2xl bg-[#5f259f] flex items-center justify-center shadow-xl shadow-purple-500/30">
                         <Lock size={36} className="text-white" />
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800 mb-2">Redirecting to PhonePe</h2>
+                        <h2 className="text-xl font-bold text-gray-800 mb-2">Confirming your payment</h2>
                         <p className="text-gray-500 text-sm">Setting up your secure payment session...</p>
                     </div>
                     <div className="flex gap-1.5">
