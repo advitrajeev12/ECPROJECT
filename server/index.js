@@ -32,7 +32,10 @@ const __dirname = path.dirname(__filename);
 app.set('trust proxy', 1);
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-app.use(cors({
+// Scoped to /api only. The admin panel is server-rendered EJS proxied through
+// Next.js (which can forward `Origin: null`) and is protected by sessions, not
+// CORS — applying the API's strict policy to it just blocks legitimate page loads.
+app.use('/api', cors({
     origin: function (origin, callback) {
         // Allow all origins in development or if origin is not provided
         if (!origin || process.env.NODE_ENV !== 'production') {
