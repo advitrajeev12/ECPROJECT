@@ -39,12 +39,22 @@ app.use(cors({
             return callback(null, true);
         }
 
+        // Production domains come from env (comma-separated), e.g.
+        //   ALLOWED_ORIGINS=https://baljyotidesign.com,https://www.baljyotidesign.com
+        // Next.js proxies /api to Express and forwards the browser's Origin header,
+        // so the live site's origin must be allowed here even though it's same-site.
+        const envOrigins = (process.env.ALLOWED_ORIGINS || process.env.CLIENT_URL || '')
+            .split(',')
+            .map((o) => o.trim())
+            .filter(Boolean);
+
         const allowedOrigins = [
             'http://localhost:3000',
             'http://127.0.0.1:3000',
             'http://10.11.2.119:3000',
             'http://local-origin.dev',
-            'https://local-origin.dev'
+            'https://local-origin.dev',
+            ...envOrigins,
         ];
 
         if (
