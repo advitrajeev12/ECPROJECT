@@ -90,13 +90,11 @@ app.use(cookieParser());
 // 1. HTTP Security Headers
 const cspDirectives = {
     "default-src": ["'self'"],
-    // OTP is now verified server-side via Twilio Verify (no browser widget/SDK),
-    // so no OTP-provider domains are needed in the client-facing CSP.
     "script-src": ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://checkout.razorpay.com"],
     "style-src": ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
     "img-src": ["'self'", "data:", "https://lh3.googleusercontent.com", "https://drive.google.com", "https://images.unsplash.com", "*"],
     "font-src": ["'self'", "https://cdnjs.cloudflare.com", "https://fonts.gstatic.com"],
-    "connect-src": ["'self'", "http://127.0.0.1:5001", "http://localhost:5001", "http://192.168.0.100:5001", "http://172.20.10.2:5001", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+    "connect-src": ["'self'", "http://127.0.0.1:5001", "http://localhost:5001", "http://192.168.0.100:5001", "http://172.20.10.2:5001", "http://192.168.29.5:5001", "http://192.168.29.5:3001", "https://www.fast2sms.com", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
     "frame-src": ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
     "frame-ancestors": ["'self'"],
 };

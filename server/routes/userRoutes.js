@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/authMiddleware.js';
-import { sendOtp as sendMobileOtp, checkOtp as checkMobileOtp } from '../utils/fast2smsService.js';
+import { sendFast2SMSOtp, verifyFast2SMSOtp } from '../utils/fast2smsService.js';
 import { generateEmailOtp, sendEmailOtp } from '../utils/emailService.js';
 
 const router = express.Router();
@@ -39,35 +39,45 @@ router.get('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SEND / RESEND MOBILE OTP (Fast2SMS)
-// POST /api/users/send-otp     Body: { mobile, lang? }
-// POST /api/users/resend-otp   Body: { mobile, lang? }
+// SEND FAST2SMS OTP
+// POST /api/users/send-otp
+// Body: { mobile }
 // ─────────────────────────────────────────────────────────────────────────────
-const handleSendOtp = async (req, res) => {
-    const { mobile, lang } = req.body;   // lang: 'en' (default) | 'hi'
+router.post('/send-otp', async (req, res) => {
+    const { mobile } = req.body;
 
-    if (!mobile || !/^[6-9]\d{9}$/.test(String(mobile).replace(/\D/g, '').slice(-10))) {
-        return res.status(400).json({ success: false, message: 'A valid 10-digit mobile number is required' });
+    if (!mobile) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mobile number is required'
+        });
     }
 
     try {
-        const result = await sendMobileOtp(mobile, lang);
-        res.json({
-            success: true,
-            mock: result.mock === true,
-            message: `OTP sent to +91 ${String(mobile).slice(-10)}`
-        });
+        const result = await sendFast2SMSOtp(mobile);
+        res.json(result);
     } catch (error) {
         console.error('Send OTP error:', error.message);
-        res.status(502).json({ success: false, message: error.message || 'Failed to send OTP' });
+        res.status(400).json({ success: false, message: error.message });
     }
-};
+});
 
-router.post('/send-otp', handleSendOtp);
-router.post('/resend-otp', handleSendOtp);
+router.post('/resend-otp', async (req, res) => {
+    const { mobile } = req.body;
+    if (!mobile) {
+        return res.status(400).json({ success: false, message: 'Mobile number is required' });
+    }
+    try {
+        const result = await sendFast2SMSOtp(mobile);
+        res.json(result);
+    } catch (error) {
+        console.error('Resend OTP error:', error.message);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VERIFY MOBILE OTP + LOGIN
+// VERIFY FAST2SMS OTP + LOGIN
 // POST /api/users/verify-otp
 // Body: { mobile, otp }
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,15 +85,16 @@ router.post('/verify-otp', async (req, res) => {
     const { mobile, otp } = req.body;
 
     if (!mobile || !otp) {
-        return res.status(400).json({ success: false, message: 'Mobile number and OTP are required' });
+        return res.status(400).json({
+            success: false,
+            message: 'Mobile number and OTP are required'
+        });
     }
 
     try {
-        // Verify the code with Fast2SMS-stored OTP (or mock)
-        const { mobile: verifiedMobile } = await checkMobileOtp(mobile, otp);
+        const { mobile: cleanMobile } = await verifyFast2SMSOtp(mobile, otp);
 
-        // Find user in DB
-        const user = await User.findOne({ mobile: verifiedMobile }).lean();
+        const user = await User.findOne({ mobile: cleanMobile }).lean();
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -95,13 +106,19 @@ router.post('/verify-otp', async (req, res) => {
         const userResponse = { ...user };
         delete userResponse.password;
 
-        console.log(`OTP login success for mobile: ${verifiedMobile}`);
+        console.log(`OTP login success for mobile: ${cleanMobile}`);
         res.json({ success: true, user: userResponse, message: 'Login successful' });
 
     } catch (error) {
         console.error('OTP login error:', error.message);
         res.status(400).json({ success: false, message: error.message });
     }
+});
+
+// Alias for backwards compatibility
+router.post('/verify-msg91-otp', async (req, res) => {
+    const { mobile, otp, accessToken } = req.body;
+    return router.handle(req, res);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -141,16 +158,17 @@ router.post('/signup', async (req, res) => {
     console.log('>>> API HIT: /api/users/signup');
     const { name, email, password, mobile, role, otp } = req.body;
 
-    if (!mobile || !otp) {
+    const otpCode = otp;
+    if (!otpCode) {
         return res.status(400).json({
             success: false,
-            message: 'Mobile number and OTP verification are required.'
+            message: 'OTP verification is required.'
         });
     }
 
     try {
-        // 1. Verify the OTP with Twilio Verify (or mock)
-        const verification = await checkMobileOtp(mobile, otp);
+        // 1. Verify OTP with Fast2SMS Service
+        const verification = await verifyFast2SMSOtp(mobile, otpCode);
         const finalMobile = verification.mobile;
 
         // 2. Check for duplicates

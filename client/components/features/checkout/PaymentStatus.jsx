@@ -3,49 +3,35 @@ import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ROUTES } from "@/lib/routes";
 import { CheckCircle2, XCircle, ShoppingBag, ArrowRight, RefreshCw } from "lucide-react";
-import axios from "axios";
-import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+
+// This page is kept for any direct navigation to /user/payment/status.
+// With Razorpay's modal flow, payment verification is handled inline in Checkout.jsx.
+// This page simply reflects the status passed via query params (?status=success|failed).
 
 function StatusContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const transactionId = searchParams.get("transactionId");
-    const isSimulated = searchParams.get("sim") === "1";
-
-    const { user, loading } = useAuth();
+    const statusParam = searchParams.get("status"); // "success" | "failed"
     const { clearCart } = useCart();
 
-    const [status, setStatus] = useState("processing"); // processing | success | failed
     const [countdown, setCountdown] = useState(5);
 
+    const status = statusParam === "success" ? "success" : statusParam === "failed" ? "failed" : null;
+
+    // If no status param, redirect to profile
     useEffect(() => {
-        if (!transactionId) {
+        if (!status) {
             router.push(ROUTES.PROFILE);
-            return;
         }
+    }, [status, router]);
 
-        const checkStatus = async () => {
-            try {
-                const url = `/api/orders/razorpay/status/${transactionId}${isSimulated ? "?sim=1" : ""}`;
-                const res = await axios.get(url, { withCredentials: true });
-
-                if (res.data.success) {
-                    setStatus("success");
-                    clearCart(); // Clear cart on successful payment
-                } else {
-                    setStatus("failed");
-                }
-            } catch (error) {
-                console.error("Payment status check failed", error);
-                setStatus("failed");
-            }
-        };
-
-        if (user && !loading) {
-            checkStatus();
+    // Clear cart on success
+    useEffect(() => {
+        if (status === "success") {
+            clearCart();
         }
-    }, [transactionId, user, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [status]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Countdown auto-redirect after success
     useEffect(() => {
@@ -58,50 +44,25 @@ function StatusContent() {
         return () => clearTimeout(t);
     }, [status, countdown, router]);
 
+    if (!status) return null;
+
     return (
         <div className="min-h-[80vh] flex flex-col justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100 px-4">
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 max-w-md w-full overflow-hidden">
-
-                {/* Processing State */}
-                {status === "processing" && (
-                    <div className="p-10 flex flex-col items-center gap-5 text-center">
-                        <div className="relative">
-                            <div className="w-20 h-20 rounded-full border-4 border-gray-100 flex items-center justify-center">
-                                <div className="w-16 h-16 rounded-full border-4 border-t-[#5f259f] border-r-[#5f259f] border-b-transparent border-l-transparent animate-spin" />
-                            </div>
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-gray-800 mb-2">Verifying Payment</h2>
-                            <p className="text-gray-500 text-sm leading-relaxed">
-                                Please wait while we confirm your transaction.<br />
-                                <span className="font-medium text-gray-700">Do not refresh or close this page.</span>
-                            </p>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-[#5f259f] to-[#8b44d4] rounded-full animate-pulse w-3/4" />
-                        </div>
-                    </div>
-                )}
 
                 {/* Success State */}
                 {status === "success" && (
                     <div className="flex flex-col items-center text-center">
                         {/* Green Header Band */}
                         <div className="w-full bg-gradient-to-br from-emerald-500 to-teal-500 py-10 px-6 flex flex-col items-center gap-3">
-                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center animate-bounce-once">
+                            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
                                 <CheckCircle2 className="w-12 h-12 text-white" />
                             </div>
                             <h2 className="text-2xl font-bold text-white">Payment Successful!</h2>
-                            <p className="text-emerald-100 text-sm">Your order has been placed & confirmed.</p>
+                            <p className="text-emerald-100 text-sm">Your order has been placed &amp; confirmed.</p>
                         </div>
 
                         <div className="p-8 w-full flex flex-col items-center gap-6">
-                            {isSimulated && (
-                                <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
-                                    🧪 Simulated payment — order marked as paid (no real transaction)
-                                </div>
-                            )}
-
                             <div className="flex items-center gap-2 text-gray-500 text-sm">
                                 <ShoppingBag size={16} />
                                 <span>
@@ -112,7 +73,7 @@ function StatusContent() {
 
                             <button
                                 onClick={() => router.push(ROUTES.HOME)}
-                                className="w-full bg-gradient-to-r from-[#5f259f] to-[#8b44d4] text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                                className="w-full bg-gradient-to-r from-[#3395FF] to-[#5badff] text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                             >
                                 Go to Home <ArrowRight size={16} />
                             </button>
@@ -136,13 +97,13 @@ function StatusContent() {
                                 <XCircle className="w-12 h-12 text-white" />
                             </div>
                             <h2 className="text-2xl font-bold text-white">Payment Failed</h2>
-                            <p className="text-rose-100 text-sm">We couldn&apos;t verify your transaction.</p>
+                            <p className="text-rose-100 text-sm">We couldn&apos;t process your payment.</p>
                         </div>
 
                         <div className="p-8 w-full flex flex-col items-center gap-5">
                             <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-xs text-gray-500 leading-relaxed">
                                 If any amount was deducted from your account, it will be automatically refunded within{" "}
-                                <span className="font-semibold text-gray-700">3–5 business days</span>.
+                                <span className="font-semibold text-gray-700">3–5 business days</span> by Razorpay.
                             </div>
 
                             <button
@@ -162,13 +123,6 @@ function StatusContent() {
                     </div>
                 )}
             </div>
-
-            {/* Transaction ID footnote */}
-            {transactionId && (
-                <p className="mt-6 text-xs text-gray-400 font-mono">
-                    Transaction ID: {transactionId}
-                </p>
-            )}
         </div>
     );
 }
@@ -178,7 +132,7 @@ export default function PaymentStatus() {
         <Suspense
             fallback={
                 <div className="min-h-[80vh] flex justify-center items-center bg-gradient-to-br from-gray-50 to-gray-100">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#5f259f]" />
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3395FF]" />
                 </div>
             }
         >

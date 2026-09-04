@@ -576,49 +576,7 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* ── Global animation keyframes ───────────────────────── */}
-      <style jsx global>{`
-        @keyframes fadeSlideDown {
-          from { opacity: 0; transform: translateY(-6px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to   { opacity: 1; }
-        }
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 6s ease infinite;
-        }
-        @keyframes logo-entrance {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .logo-entrance {
-          animation: logo-entrance 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        @keyframes badgePop {
-          0%   { transform: scale(1); }
-          40%  { transform: scale(1.35); }
-          100% { transform: scale(1); }
-        }
-        :focus-visible {
-          outline: none;
-        }
-        .focus-visible\\:ring-2:focus-visible {
-          box-shadow: 0 0 0 2px rgba(45,106,45,0.35);
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .logo-entrance, .animate-gradient-x, * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-          }
-        }
-      `}</style>
+      {/* ── Animation keyframes live in globals.css ─────────── */}
     </>
   );
 }

@@ -33,8 +33,8 @@ export default function Footer() {
         <Image src="/images/lotus_icon.png" alt="" fill className="object-contain" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-8 md:gap-12 mb-10 md:mb-16">
 
           {/* Brand & Mission (4 columns) */}
           <div className="md:col-span-4 space-y-6">
@@ -73,14 +73,15 @@ export default function Footer() {
               <div className="h-px flex-1 bg-white/10 max-w-[40px]" />
               <div className="flex gap-4">
                 {[
-                  { Icon: Facebook, color: "hover:text-[#1877F2]", href: "#" },
-                  { Icon: Instagram, color: "hover:text-[#E4405F]", href: "#" },
-                  { Icon: Twitter, color: "hover:text-[#1DA1F2]", href: "#" },
-                  { Icon: Youtube, color: "hover:text-[#FF0000]", href: "#" }
+                  { Icon: Facebook, color: "hover:text-[#1877F2]", href: "#", label: "Facebook" },
+                  { Icon: Instagram, color: "hover:text-[#E4405F]", href: "#", label: "Instagram" },
+                  { Icon: Twitter, color: "hover:text-[#1DA1F2]", href: "#", label: "Twitter" },
+                  { Icon: Youtube, color: "hover:text-[#FF0000]", href: "#", label: "YouTube" }
                 ].map((social, i) => (
                   <a
                     key={i}
                     href={social.href}
+                    aria-label={`Follow us on ${social.label}`}
                     className={`text-gray-500 transition-all duration-300 transform hover:scale-125 ${social.color}`}
                   >
                     <social.Icon size={18} />
@@ -90,7 +91,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links (2 columns) */}
+          {/* Quick Links (sm:col-span-1 / md:col-span-2) */}
           <div className="md:col-span-2 space-y-6">
             <h4 className="text-sm font-bold uppercase tracking-[0.2em] text-white/90">Experience</h4>
             <ul className="space-y-4">
@@ -181,7 +182,7 @@ export default function Footer() {
         </div>
 
         {/* Divider & Social Bottom */}
-        <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="border-t border-white/5 pt-6 sm:pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
           <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-gray-500">
             <span>Handcrafted in India</span>
             <span className="w-1 h-1 rounded-full bg-amber-500/50" />

@@ -2,7 +2,7 @@ import express from 'express';
 import User from '../../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { checkOtp as checkMobileOtp } from '../../utils/fast2smsService.js';
+import { sendFast2SMSOtp, verifyFast2SMSOtp } from '../../utils/fast2smsService.js';
 
 const router = express.Router();
 
@@ -64,7 +64,23 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Verify mobile OTP (Twilio Verify)
+// Send OTP
+router.post('/send-otp', async (req, res) => {
+    const { mobile } = req.body;
+    if (!mobile) {
+        return res.status(400).json({ success: false, message: 'Mobile number is required' });
+    }
+
+    try {
+        const result = await sendFast2SMSOtp(mobile);
+        res.json(result);
+    } catch (error) {
+        console.error('API Send OTP error:', error);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
+
+// Verify OTP
 router.post('/verify-otp', async (req, res) => {
     const { mobile, otp } = req.body;
 
@@ -73,9 +89,9 @@ router.post('/verify-otp', async (req, res) => {
     }
 
     try {
-        const { mobile: verifiedMobile } = await checkMobileOtp(mobile, otp);
+        const { mobile: cleanMobile } = await verifyFast2SMSOtp(mobile, otp);
 
-        const user = await User.findOne({ mobile: verifiedMobile }).lean();
+        const user = await User.findOne({ mobile: cleanMobile }).lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found. Please sign up first.' });
         }

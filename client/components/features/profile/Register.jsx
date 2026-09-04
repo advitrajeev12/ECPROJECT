@@ -80,7 +80,7 @@ const Register = () => {
             const res = await sendSignupOtp(formData.mobile);
             if (res.success) {
                 setStep(2);
-                setSuccessMsg(`OTP sent to +91 ${formData.mobile}`);
+                setSuccessMsg(res.devOtp ? `OTP sent to +91 ${formData.mobile} (Dev OTP: ${res.devOtp})` : `OTP sent to +91 ${formData.mobile}`);
             } else {
                 setGeneralError(res.message || "Failed to send OTP.");
             }

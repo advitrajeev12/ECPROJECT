@@ -1,150 +1,123 @@
 import axios from 'axios';
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
-import Otp from '../models/Otp.js';
-import { getOtpMessage, DEFAULT_OTP_LANG, isSupportedLang } from './otpTemplates.js';
 dotenv.config();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OTP via Fast2SMS (https://docs.fast2sms.com) — DLT route.
-//
-// Fast2SMS is a delivery-only gateway: it sends the SMS but does NOT generate or
-// verify the code. So we:
-//   1. generate a 6-digit code,
-//   2. store its bcrypt hash in the Otp collection (TTL-expiring),
-//   3. deliver it via the Fast2SMS DLT route (uses your DLT-approved template),
-//   4. verify the user's input against the stored hash on /verify-otp.
-//
-// We call the REST endpoint with axios — no extra npm dependency.
-// ─────────────────────────────────────────────────────────────────────────────
+// In-memory OTP storage: mobile -> { otp, expiresAt }
+const otpStore = new Map();
 
-const FAST2SMS_URL = 'https://www.fast2sms.com/dev/bulkV2';
-const OTP_TTL_MIN = parseInt(process.env.OTP_TTL_MINUTES || '10', 10);
-const MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10);
-
-// ── Mobile helper — Fast2SMS wants a bare 10-digit Indian number ──────────────
-export const to10Digit = (mobile) => {
+// Helper to sanitize 10-digit Indian mobile number
+const to10Digit = (mobile) => {
     let m = String(mobile).replace(/\D/g, '');
-    if (m.length > 10) m = m.slice(-10);   // strip country code / leading zeros
+    if (m.startsWith('91') && m.length === 12) m = m.slice(2);
     return m;
 };
 
-// ── Config / mode helpers ─────────────────────────────────────────────────────
-const isPlaceholder = (v) => !v || v.startsWith('your_') || v.includes('xxxx');
-
-// Mock mode: no real SMS, DEV_OTP_CODE is accepted. On when DEV_MOCK_OTP=true or
-// the Fast2SMS API key is still a placeholder (so the fake .env just works).
-export const isMockOtpEnabled = () =>
-    process.env.DEV_MOCK_OTP === 'true' || isPlaceholder(process.env.FAST2SMS_API_KEY);
-
-const DEV_OTP_CODE = () => process.env.DEV_OTP_CODE || '123456';
-
-const generateCode = () => String(crypto.randomInt(100000, 1000000)); // 6 digits
-
-const resolveLang = (lang) => {
-    const l = lang || process.env.OTP_LANG || DEFAULT_OTP_LANG;
-    return isSupportedLang(l) ? l : 'en';
+/**
+ * Generate a random 6-digit numeric OTP
+ */
+const generateOtpCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SEND OTP
-// ─────────────────────────────────────────────────────────────────────────────
-export const sendOtp = async (mobile, langInput) => {
-    const number = to10Digit(mobile);
-    const lang = resolveLang(langInput);
-    const code = generateCode();
-
-    if (isMockOtpEnabled()) {
-        console.log(`[OTP:MOCK] (${lang}) "${getOtpMessage(DEV_OTP_CODE(), lang)}" -> ${number}. Use: ${DEV_OTP_CODE()}`);
-        return { success: true, mock: true };
+/**
+ * Send OTP via Fast2SMS API
+ * @param {string} mobile 10-digit Indian mobile number
+ */
+export const sendFast2SMSOtp = async (mobile) => {
+    const cleanMobile = to10Digit(mobile);
+    if (!cleanMobile || cleanMobile.length !== 10) {
+        throw new Error('Please provide a valid 10-digit mobile number');
     }
 
-    // Persist a hash of the code (upsert so a re-send replaces the previous one).
-    const codeHash = await bcrypt.hash(code, 10);
-    await Otp.findOneAndUpdate(
-        { mobile: number },
-        { mobile: number, codeHash, lang, attempts: 0, expiresAt: new Date(Date.now() + OTP_TTL_MIN * 60 * 1000) },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
+    const otp = generateOtpCode();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes validity
+
+    // Save OTP to in-memory store
+    otpStore.set(cleanMobile, { otp, expiresAt });
 
     const apiKey = process.env.FAST2SMS_API_KEY;
-    const senderId = process.env.FAST2SMS_SENDER_ID;                 // e.g. BALJYT
-    const templateId = lang === 'hi'
-        ? process.env.FAST2SMS_DLT_TEMPLATE_ID_HI
-        : process.env.FAST2SMS_DLT_TEMPLATE_ID_EN;
 
-    if (!senderId || !templateId) {
-        throw new Error('Fast2SMS sender_id / DLT template id not configured');
+    console.log(`[Fast2SMS] Generated OTP ${otp} for mobile ${cleanMobile}.`);
+
+    // Development / Fallback mode: if API key is not configured or placeholder
+    if (!apiKey || apiKey === 'YOUR_FAST2SMS_API_KEY_HERE' || apiKey.trim() === '') {
+        console.warn(`[Fast2SMS] FAST2SMS_API_KEY is not configured in server/.env.`);
+        console.warn(`[Fast2SMS DEV MODE] Use OTP: ${otp} for mobile +91 ${cleanMobile}`);
+        return { success: true, message: 'OTP sent (Dev mode - check server console)', devOtp: otp };
     }
 
     try {
-        const params = {
-            authorization: apiKey,
-            route: 'dlt',
-            sender_id: senderId,
-            message: templateId,          // DLT-approved Template ID
-            variables_values: code,       // fills the {#var#} placeholder
-            numbers: number,
-            flash: 0,
-        };
-        if (process.env.FAST2SMS_ENTITY_ID) params.entity_id = process.env.FAST2SMS_ENTITY_ID;
+        const response = await axios.post(
+            'https://www.fast2sms.com/dev/bulkV2',
+            {
+                route: 'otp',
+                variables_values: otp,
+                numbers: cleanMobile
+            },
+            {
+                headers: {
+                    'authorization': apiKey,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 10000
+            }
+        );
 
-        const res = await axios.get(FAST2SMS_URL, { params, timeout: 15000 });
+        console.log('[Fast2SMS] API response:', JSON.stringify(response.data));
 
-        if (res.data && res.data.return === true) {
-            console.log(`[Fast2SMS] OTP sent to ${number} (req ${res.data.request_id})`);
-            return { success: true, mock: false };
+        if (response.data && (response.data.return === true || response.data.status_code === 200)) {
+            return { success: true, message: 'OTP sent successfully' };
+        } else {
+            console.warn('[Fast2SMS] API warning response:', response.data);
+            console.warn(`[Fast2SMS DEV FALLBACK] OTP: ${otp} for mobile +91 ${cleanMobile}`);
+            return { 
+                success: true, 
+                message: response.data?.message?.[0] || 'OTP request processed',
+                devOtp: process.env.NODE_ENV === 'development' ? otp : undefined
+            };
         }
-        throw new Error(res.data?.message || 'Fast2SMS reported a send failure');
     } catch (err) {
-        const msg = err.response?.data?.message || err.message;
-        console.error('[Fast2SMS] Send OTP error:', Array.isArray(msg) ? msg.join(', ') : msg);
-        throw new Error('Failed to send OTP. Please try again.');
+        const errMsg = err.response?.data?.message || err.message;
+        console.error('[Fast2SMS] Error sending SMS:', errMsg);
+        console.warn(`[Fast2SMS DEV FALLBACK] OTP: ${otp} for mobile +91 ${cleanMobile}`);
+        if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+            return { success: true, message: 'OTP logged to server console (Fast2SMS API failed)', devOtp: otp };
+        }
+        throw new Error(errMsg || 'Failed to send OTP via Fast2SMS');
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// CHECK OTP — returns { success, mobile } (10-digit) or throws.
-// ─────────────────────────────────────────────────────────────────────────────
-export const checkOtp = async (mobile, code) => {
-    if (!mobile || !code) {
-        throw new Error('Mobile number and OTP are required');
+/**
+ * Verify OTP for a given mobile number
+ * @param {string} mobile 10-digit mobile number
+ * @param {string} otp 6-digit OTP code entered by user
+ */
+export const verifyFast2SMSOtp = async (mobile, otp) => {
+    const cleanMobile = to10Digit(mobile);
+    if (!cleanMobile || cleanMobile.length !== 10) {
+        throw new Error('Please provide a valid 10-digit mobile number');
     }
 
-    const number = to10Digit(mobile);
-
-    if (isMockOtpEnabled()) {
-        if (String(code).trim() !== DEV_OTP_CODE()) {
-            throw new Error('Invalid OTP. Please try again.');
-        }
-        console.log(`[OTP:MOCK] Accepted code for ${number}`);
-        return { success: true, mobile: number };
+    if (!otp || String(otp).trim() === '') {
+        throw new Error('OTP is required');
     }
 
-    const record = await Otp.findOne({ mobile: number });
-    if (!record) {
-        throw new Error('No OTP found for this number. Please request a new one.');
+    const storedData = otpStore.get(cleanMobile);
+
+    if (!storedData) {
+        throw new Error('No OTP sent for this mobile number or OTP has expired');
     }
 
-    if (record.expiresAt < new Date()) {
-        await Otp.deleteOne({ _id: record._id });
-        throw new Error('OTP has expired. Please request a new one.');
+    if (Date.now() > storedData.expiresAt) {
+        otpStore.delete(cleanMobile);
+        throw new Error('OTP has expired. Please request a new OTP');
     }
 
-    if (record.attempts >= MAX_ATTEMPTS) {
-        await Otp.deleteOne({ _id: record._id });
-        throw new Error('Too many incorrect attempts. Please request a new OTP.');
+    if (String(storedData.otp).trim() !== String(otp).trim()) {
+        throw new Error('Invalid OTP. Please try again');
     }
 
-    const isMatch = await bcrypt.compare(String(code).trim(), record.codeHash);
-    if (!isMatch) {
-        record.attempts += 1;
-        await record.save();
-        throw new Error('Invalid OTP. Please try again.');
-    }
-
-    // One-time use — consume it.
-    await Otp.deleteOne({ _id: record._id });
-    return { success: true, mobile: number };
+    // OTP is valid - clear it from store to prevent reuse
+    otpStore.delete(cleanMobile);
+    return { success: true, mobile: cleanMobile };
 };

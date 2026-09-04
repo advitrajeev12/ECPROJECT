@@ -7,12 +7,6 @@ import { ROUTES } from "@/lib/routes";
 const AuthContext = createContext();
 const API_URL = "";
 
-// OTP is verified entirely server-side (Twilio Verify), so there are NO OTP
-// provider credentials or SDKs in the browser. The client just:
-//   1. POST /api/users/send-otp   { mobile }
-//   2. POST /api/users/verify-otp { mobile, otp }   (login)
-//      POST /api/users/signup     { ...details, otp } (signup)
-
 export const AuthProvider = ({ children }) => {
     const [user, setUser]       = useState(null);
     const [loading, setLoading] = useState(true);
@@ -54,27 +48,30 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // ── STEP 1: Send OTP (backend → Twilio Verify) ────────────────────────────
+    // ── STEP 1: Send OTP via Fast2SMS ──────────────────────────────────────────
     const sendOtp = async (mobile) => {
         try {
-            const res = await axios.post(
-                `${API_URL}/api/users/send-otp`,
-                { mobile },
-                { withCredentials: true }
-            );
-            return { success: true, mock: res.data?.mock === true, message: res.data?.message };
+            const res = await axios.post(`${API_URL}/api/users/send-otp`, { mobile });
+            return { 
+                success: true, 
+                message: res.data.message || "OTP sent successfully", 
+                devOtp: res.data.devOtp 
+            };
         } catch (error) {
-            return {
-                success: false,
-                message: error.response?.data?.message || "Failed to send OTP"
+            console.error("[AuthContext] sendOtp error:", error.response?.data?.message || error.message);
+            return { 
+                success: false, 
+                message: error.response?.data?.message || error.message || "Failed to send OTP" 
             };
         }
     };
 
-    const resendOtp = async (mobile) => sendOtp(mobile);
-    const sendSignupOtp = async (mobile) => sendOtp(mobile);
+    // ── STEP 1b: Resend OTP ────────────────────────────────────────────────────
+    const resendOtp = async (mobile) => {
+        return sendOtp(mobile);
+    };
 
-    // ── STEP 2: Verify OTP + Login ────────────────────────────────────────────
+    // ── STEP 2: Verify Fast2SMS OTP + Backend Login ────────────────────────────
     const loginWithOtp = async (mobile, otp) => {
         try {
             const res = await axios.post(
@@ -87,30 +84,27 @@ export const AuthProvider = ({ children }) => {
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || "OTP verification failed"
+                message: error.response?.data?.message || error.message || "OTP verification failed"
             };
         }
     };
 
-    // ── Signup: create account after OTP verification ─────────────────────────
+    // ── Signup: Send OTP (same as sendOtp) ────────────────────────────────────
+    const sendSignupOtp = async (mobile) => sendOtp(mobile);
+
+    // ── Signup: Verify Fast2SMS OTP + Backend Account Creation ───────────────
     const signup = async (userData) => {
         try {
             const res = await axios.post(
                 `${API_URL}/api/users/signup`,
-                {
-                    name: userData.name,
-                    email: userData.email,
-                    password: userData.password,
-                    mobile: userData.mobile,
-                    otp: userData.otp,
-                },
+                userData,
                 { withCredentials: true }
             );
             return { success: true, message: res.data.message };
         } catch (error) {
             return {
                 success: false,
-                message: error.response?.data?.message || "Signup failed"
+                message: error.response?.data?.message || error.message || "Signup failed"
             };
         }
     };

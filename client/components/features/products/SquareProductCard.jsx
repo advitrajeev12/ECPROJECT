@@ -46,12 +46,12 @@ const SquareProductCard = ({ product }) => {
     return (
         <motion.div 
             layout
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 1, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             whileHover={{ y: -5 }}
-            viewport={{ once: true }}
+            viewport={{ once: true, margin: "50px" }}
             transition={{ 
-                duration: 0.5,
+                duration: 0.4,
                 y: { type: "spring", stiffness: 300, damping: 25 }
             }}
             onClick={handleCardClick} 

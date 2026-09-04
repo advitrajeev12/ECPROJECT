@@ -162,7 +162,7 @@ export default function ProductDetails({ product, similarProducts = [] }) {
                     </div>
 
                     {/* ── PRODUCT INFO ───────────────────────────────────────── */}
-                    <div className="flex flex-col gap-5 sticky top-24">
+                    <div className="flex flex-col gap-5 sticky top-[88px]">
 
                         {/* Name & Price */}
                         <div className="border-b border-gray-100 dark:border-gray-800 pb-5">
@@ -352,6 +352,7 @@ export default function ProductDetails({ product, similarProducts = [] }) {
                         <img
                             src={artisanImageSrc}
                             alt="Artisan crafting the product"
+                            loading="lazy"
                             className="absolute inset-0 w-full h-full object-cover"
                             onError={(e) => { e.target.style.display = 'none'; }}
                         />

@@ -6,7 +6,7 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', '192.168.0.100', 'localhost', '127.0.0.1', '10.11.3.41', '172.20.10.2'],
+  allowedDevOrigins: ['local-origin.dev', '*.local-origin.dev', '192.168.0.100', 'localhost', '127.0.0.1', '10.11.3.41', '172.20.10.2', '192.168.29.5', '0.0.0.0'],
   turbopack: {
     root: path.join(__dirname, '..'),
   },
