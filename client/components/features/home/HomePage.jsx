@@ -127,7 +127,7 @@ const HomePage = () => {
       ════════════════════════════════════════ */}
       <section
         className="relative w-full overflow-hidden flex flex-col md:flex-row items-center"
-        style={{ minHeight: "640px", background: "linear-gradient(135deg, #0d2b0d 0%, #1a5b3a 55%, #2d7a4f 100%)" }}
+        style={{ minHeight: "clamp(540px, 80vh, 720px)", background: "linear-gradient(135deg, #0d2b0d 0%, #1a5b3a 55%, #2d7a4f 100%)" }}
       >
         {/* Decorative blobs */}
         <div className="absolute top-[-80px] left-[-80px] w-80 h-80 rounded-full bg-white/5 pointer-events-none" />
@@ -154,7 +154,7 @@ const HomePage = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6"
+            className="text-3xl sm:text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6"
           >
             Crafted by <span className="text-amber-400">Artisans.</span><br />
             Loved by <span className="text-emerald-300">Millions.</span>
@@ -164,7 +164,7 @@ const HomePage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="text-white/70 text-base md:text-xl font-light mb-12 max-w-xl"
+            className="text-white/70 text-sm sm:text-base md:text-xl font-light mb-8 sm:mb-12 max-w-xl px-2 sm:px-0"
           >
             Discover handmade treasures from rural India. Every product supports a real artisan family and preserves a centuries-old story.
           </motion.p>
@@ -207,7 +207,7 @@ const HomePage = () => {
               <Link
                 href={`/collections/${cat.slug}`}
                 className="group relative flex flex-col items-center justify-end rounded-3xl overflow-hidden cursor-pointer transition-all duration-500 hover:scale-105 shadow-2xl block border border-white/10"
-                style={{ width: "160px", height: "260px", flexShrink: 0 }}
+                style={{ width: "clamp(120px, 25vw, 160px)", height: "clamp(200px, 35vw, 260px)", flexShrink: 0 }}
               >
                 {/* Real category image */}
                 <Image
@@ -332,8 +332,8 @@ const HomePage = () => {
             items-center
             justify-between
             text-center
-            min-h-[520px]   /* 🔥 Tall rectangular look */
-            px-8 py-12
+            min-h-[380px] sm:min-h-[460px] md:min-h-[520px]
+            px-6 sm:px-8 py-8 sm:py-12
             group
             transition-all duration-500
             hover:shadow-2xl
@@ -403,7 +403,7 @@ const HomePage = () => {
 
         <div className="relative z-10 flex flex-col items-center text-center px-6">
           <span className="text-amber-400 text-xs font-semibold uppercase tracking-[0.4em] mb-4">Curated for life's milestones</span>
-          <h2 className="text-5xl md:text-7xl font-serif text-white font-light mb-6 leading-tight uppercase">
+          <h2 className="text-3xl sm:text-5xl md:text-7xl font-serif text-white font-light mb-6 leading-tight uppercase">
             Gifts for <span className="text-amber-400 italic">Human Connection</span>
           </h2>
           <p className="text-white/60 text-base md:text-lg mb-12 max-w-lg font-light leading-relaxed">

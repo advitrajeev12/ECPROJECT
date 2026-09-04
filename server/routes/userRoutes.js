@@ -3,7 +3,7 @@ import User from '../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { protect } from '../middleware/authMiddleware.js';
-import { verifyMsg91Token } from '../utils/msg91Service.js';
+import { sendFast2SMSOtp, verifyFast2SMSOtp } from '../utils/fast2smsService.js';
 import { generateEmailOtp, sendEmailOtp } from '../utils/emailService.js';
 
 const router = express.Router();
@@ -39,26 +39,48 @@ router.get('/', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// VERIFY WIDGET OTP + LOGIN
-// POST /api/users/verify-msg91-otp
-// Body: { accessToken }
+// SEND FAST2SMS OTP
+// POST /api/users/send-otp
+// Body: { mobile }
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/verify-msg91-otp', async (req, res) => {
-    const { accessToken } = req.body;
+router.post('/send-otp', async (req, res) => {
+    const { mobile } = req.body;
 
-    if (!accessToken) {
+    if (!mobile) {
         return res.status(400).json({
             success: false,
-            message: 'MSG91 Access Token is required'
+            message: 'Mobile number is required'
         });
     }
 
     try {
-        // Verify Access Token with MSG91
-        const { mobile } = await verifyMsg91Token(accessToken);
+        const result = await sendFast2SMSOtp(mobile);
+        res.json(result);
+    } catch (error) {
+        console.error('Send OTP error:', error.message);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
 
-        // Find user in DB
-        const user = await User.findOne({ mobile }).lean();
+// ─────────────────────────────────────────────────────────────────────────────
+// VERIFY FAST2SMS OTP + LOGIN
+// POST /api/users/verify-otp
+// Body: { mobile, otp }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/verify-otp', async (req, res) => {
+    const { mobile, otp } = req.body;
+
+    if (!mobile || !otp) {
+        return res.status(400).json({
+            success: false,
+            message: 'Mobile number and OTP are required'
+        });
+    }
+
+    try {
+        const { mobile: cleanMobile } = await verifyFast2SMSOtp(mobile, otp);
+
+        const user = await User.findOne({ mobile: cleanMobile }).lean();
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -70,13 +92,19 @@ router.post('/verify-msg91-otp', async (req, res) => {
         const userResponse = { ...user };
         delete userResponse.password;
 
-        console.log(`OTP login success for mobile: ${mobile}`);
+        console.log(`OTP login success for mobile: ${cleanMobile}`);
         res.json({ success: true, user: userResponse, message: 'Login successful' });
 
     } catch (error) {
         console.error('OTP login error:', error.message);
         res.status(400).json({ success: false, message: error.message });
     }
+});
+
+// Alias for backwards compatibility
+router.post('/verify-msg91-otp', async (req, res) => {
+    const { mobile, otp, accessToken } = req.body;
+    return router.handle(req, res);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,9 +142,10 @@ router.post('/login', async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/signup', async (req, res) => {
     console.log('>>> API HIT: /api/users/signup');
-    const { name, email, password, mobile, role, msg91AccessToken } = req.body;
+    const { name, email, password, mobile, role, otp } = req.body;
 
-    if (!msg91AccessToken) {
+    const otpCode = otp;
+    if (!otpCode) {
         return res.status(400).json({
             success: false,
             message: 'OTP verification is required.'
@@ -124,8 +153,8 @@ router.post('/signup', async (req, res) => {
     }
 
     try {
-        // 1. Verify Access Token with MSG91 Widget API
-        const verification = await verifyMsg91Token(msg91AccessToken);
+        // 1. Verify OTP with Fast2SMS Service
+        const verification = await verifyFast2SMSOtp(mobile, otpCode);
         const finalMobile = verification.mobile;
 
         // 2. Check for duplicates

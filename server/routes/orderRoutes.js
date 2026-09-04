@@ -1,13 +1,25 @@
 import express from 'express';
 import Order from '../models/Order.js';
 import crypto from 'crypto';
-import axios from 'axios';
+import Razorpay from 'razorpay';
 import { sendOrderReceiptEmail } from '../utils/emailService.js';
 const router = express.Router();
 
 import { protect } from '../middleware/authMiddleware.js';
 
-// @desc    Create new order
+// ─── Razorpay Instance (lazy — env vars not available at import time) ──────────
+let _razorpay = null;
+function getRazorpay() {
+    if (!_razorpay) {
+        _razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET,
+        });
+    }
+    return _razorpay;
+}
+
+// @desc    Create new order (COD)
 // @route   POST /api/orders
 // @access  Private
 router.post('/', protect, async (req, res) => {
@@ -41,7 +53,7 @@ router.post('/', protect, async (req, res) => {
         res.status(201).json({ success: true, order: createdOrder });
     } catch (error) {
         console.error('Create Order Error:', error);
-        res.status(500).json({ success: false, message: 'Server error tracking order' });
+        res.status(500).json({ success: false, message: 'Server error creating order' });
     }
 });
 
@@ -58,10 +70,10 @@ router.get('/myorders', protect, async (req, res) => {
     }
 });
 
-// @desc    Initiate PhonePe Payment (Live)
-// @route   POST /api/orders/phonepe/pay
+// @desc    Create Razorpay order and save pending DB order
+// @route   POST /api/orders/razorpay/create-order
 // @access  Private
-router.post('/phonepe/pay', protect, async (req, res) => {
+router.post('/razorpay/create-order', protect, async (req, res) => {
     const { orderItems, shippingAddress, paymentMethod, itemsPrice, taxPrice, shippingPrice, totalPrice } = req.body;
 
     if (orderItems && orderItems.length === 0) {
@@ -69,7 +81,7 @@ router.post('/phonepe/pay', protect, async (req, res) => {
     }
 
     try {
-        // Create actual un-paid order in DB
+        // 1. Persist an un-paid order to DB first
         const order = new Order({
             user: req.user._id,
             orderItems,
@@ -81,111 +93,78 @@ router.post('/phonepe/pay', protect, async (req, res) => {
             totalPrice,
             isPaid: false,
         });
+        const savedOrder = await order.save();
 
-        const createdOrder = await order.save();
-
-        const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-        const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-        const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
-
-        // Check if credentials are configured
-        const hasCredentials = MERCHANT_ID && SALT_KEY &&
-            MERCHANT_ID !== 'YOUR_PHONEPE_MERCHANT_ID' &&
-            SALT_KEY !== 'YOUR_PHONEPE_SALT_KEY';
-
-        // In development without credentials, use simulation mode
-        if (!hasCredentials) {
-            console.log('[PhonePe] No credentials configured — using simulation mode');
-            return res.json({
-                success: true,
-                url: `/user/payment/status?transactionId=${createdOrder._id.toString()}&sim=1`,
-                simulated: true,
-            });
-        }
-
-        // Client URL (for user redirect after payment)
-        const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
-        // Backend URL (for PhonePe webhook — must be publicly reachable in production)
-        const backendUrl = process.env.BACKEND_URL || 'http://localhost:5001';
-
-        const data = {
-            merchantId: MERCHANT_ID,
-            merchantTransactionId: createdOrder._id.toString(),
-            merchantUserId: req.user._id.toString(),
-            amount: Math.round(totalPrice * 100), // convert to paise
-            redirectUrl: `${clientUrl}/user/payment/status?transactionId=${createdOrder._id.toString()}`,
-            redirectMode: 'REDIRECT',
-            // Webhook hits the backend server directly (not the Next.js proxy)
-            callbackUrl: `${backendUrl}/api/orders/phonepe/webhook/${createdOrder._id.toString()}`,
-            paymentInstrument: {
-                type: 'PAY_PAGE',
+        // 2. Create a Razorpay order (amount in paise)
+        const razorpayOrder = await getRazorpay().orders.create({
+            amount: Math.round(totalPrice * 100), // paise
+            currency: 'INR',
+            receipt: savedOrder._id.toString(),
+            notes: {
+                dbOrderId: savedOrder._id.toString(),
+                userId: req.user._id.toString(),
             },
-        };
+        });
 
-        const payloadMain = Buffer.from(JSON.stringify(data)).toString('base64');
-        const stringToHash = payloadMain + '/pg/v1/pay' + SALT_KEY;
-        const sha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
-        const checksum = sha256 + '###' + SALT_INDEX;
+        console.log('[Razorpay] Order created:', razorpayOrder.id);
 
-        console.log('[PhonePe] Initiating payment for transaction:', createdOrder._id);
-
-        const phonePeRes = await axios.post(
-            'https://api.phonepe.com/apis/hermes/pg/v1/pay',
-            { request: payloadMain },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-VERIFY': checksum,
-                    accept: 'application/json',
-                },
-            }
-        );
-
-        if (phonePeRes.data && phonePeRes.data.success) {
-            return res.json({
-                success: true,
-                url: phonePeRes.data.data.instrumentResponse.redirectInfo.url,
-            });
-        } else {
-            return res.status(400).json({ success: false, message: 'PhonePe Gateway Error' });
-        }
+        return res.status(201).json({
+            success: true,
+            razorpayOrderId: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            keyId: process.env.RAZORPAY_KEY_ID,
+            dbOrderId: savedOrder._id.toString(),
+        });
 
     } catch (error) {
-        console.error('PhonePe Pay Error:', error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: error.message || 'Server error initiating payment' });
+        console.error('[Razorpay] Create Order Error:', error?.error || error.message);
+        res.status(500).json({ success: false, message: error.message || 'Server error creating Razorpay order' });
     }
 });
 
-// ─── Helper: verify payment with PhonePe and update order ─────────────────────
-async function verifyAndUpdateOrder(transactionId) {
-    const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-    const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-    const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
+// @desc    Verify Razorpay payment signature and mark order as paid
+// @route   POST /api/orders/razorpay/verify-payment
+// @access  Private
+router.post('/razorpay/verify-payment', protect, async (req, res) => {
+    const {
+        razorpay_order_id,
+        razorpay_payment_id,
+        razorpay_signature,
+        dbOrderId,
+    } = req.body;
 
-    const stringToHash = `/pg/v1/status/${MERCHANT_ID}/${transactionId}` + SALT_KEY;
-    const checksum = crypto.createHash('sha256').update(stringToHash).digest('hex') + '###' + SALT_INDEX;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !dbOrderId) {
+        return res.status(400).json({ success: false, message: 'Missing payment verification fields' });
+    }
 
-    const response = await axios.get(
-        `https://api.phonepe.com/apis/hermes/pg/v1/status/${MERCHANT_ID}/${transactionId}`,
-        {
-            headers: {
-                accept: 'application/json',
-                'Content-Type': 'application/json',
-                'X-VERIFY': checksum,
-                'X-MERCHANT-ID': MERCHANT_ID,
-            },
+    try {
+        // Verify HMAC-SHA256 signature
+        const body = razorpay_order_id + '|' + razorpay_payment_id;
+        const expectedSignature = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(body)
+            .digest('hex');
+
+        if (expectedSignature !== razorpay_signature) {
+            console.warn('[Razorpay] Signature mismatch — payment verification failed');
+            return res.status(400).json({ success: false, message: 'Payment verification failed — invalid signature' });
         }
-    );
 
-    if (response.data.code === 'PAYMENT_SUCCESS') {
-        const order = await Order.findById(transactionId).populate('user', 'name email');
-        if (order && !order.isPaid) {
+        // Signature is valid — mark order as paid
+        const order = await Order.findById(dbOrderId).populate('user', 'name email');
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        if (!order.isPaid) {
             order.isPaid = true;
             order.paidAt = Date.now();
             order.paymentResult = {
-                id: response.data.data?.transactionId,
-                status: response.data.code,
+                id: razorpay_payment_id,
+                status: 'PAYMENT_SUCCESS',
                 update_time: Date.now().toString(),
+                razorpay_order_id,
             };
             await order.save();
 
@@ -195,108 +174,13 @@ async function verifyAndUpdateOrder(transactionId) {
                     .catch(err => console.error('[Email] Receipt error:', err));
             }
         }
-        return { success: true, status: 'SUCCESS' };
-    }
 
-    return { success: false, status: response.data.code || 'FAILED' };
-}
-
-// @desc    Frontend polls this to check payment status after redirect
-// @route   GET /api/orders/phonepe/status/:transactionId
-// @access  Private
-router.get('/phonepe/status/:transactionId', protect, async (req, res) => {
-    const { transactionId } = req.params;
-
-    try {
-        // Simulation mode — mark as paid without hitting PhonePe
-        if (req.query.sim === '1') {
-            const order = await Order.findById(transactionId);
-            if (order && !order.isPaid) {
-                order.isPaid = true;
-                order.paidAt = Date.now();
-                order.paymentResult = { id: transactionId, status: 'SIMULATED_SUCCESS', update_time: Date.now().toString() };
-                await order.save();
-            }
-            return res.json({ success: true, status: 'SUCCESS' });
-        }
-
-        const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID;
-        const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-
-        const hasCredentials = MERCHANT_ID && SALT_KEY &&
-            MERCHANT_ID !== 'YOUR_PHONEPE_MERCHANT_ID' &&
-            SALT_KEY !== 'YOUR_PHONEPE_SALT_KEY';
-
-        if (!hasCredentials) {
-            return res.status(400).json({ success: false, message: 'PhonePe credentials not configured' });
-        }
-
-        const result = await verifyAndUpdateOrder(transactionId);
-        return res.json(result);
+        console.log('[Razorpay] Payment verified for order:', dbOrderId);
+        return res.json({ success: true, orderId: order._id });
 
     } catch (error) {
-        console.error('[PhonePe] Status check error:', error?.response?.data || error.message);
-        res.status(500).json({ success: false, message: 'Failed to verify payment' });
-    }
-});
-
-// @desc    PhonePe server-to-server webhook (callback from PhonePe)
-// @route   POST /api/orders/phonepe/webhook/:transactionId
-// @access  Public (PhonePe servers)
-router.post('/phonepe/webhook/:transactionId', async (req, res) => {
-    const { transactionId } = req.params;
-
-    try {
-        console.log('[PhonePe Webhook] Received for transaction:', transactionId);
-
-        const SALT_KEY = process.env.PHONEPE_SALT_KEY;
-        const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
-
-        // Verify webhook signature from PhonePe
-        const xVerify = req.headers['x-verify'];
-        const responseBody = req.body?.response;
-
-        if (xVerify && responseBody) {
-            const expectedHash = crypto.createHash('sha256')
-                .update(responseBody + SALT_KEY)
-                .digest('hex') + '###' + SALT_INDEX;
-
-            if (xVerify !== expectedHash) {
-                console.warn('[PhonePe Webhook] Signature mismatch — ignoring');
-                return res.status(200).json({ success: false }); // Always return 200 to PhonePe
-            }
-
-            // Decode and parse the response
-            const decoded = JSON.parse(Buffer.from(responseBody, 'base64').toString('utf-8'));
-            if (decoded.code === 'PAYMENT_SUCCESS') {
-                const order = await Order.findById(transactionId).populate('user', 'name email');
-                if (order && !order.isPaid) {
-                    order.isPaid = true;
-                    order.paidAt = Date.now();
-                    order.paymentResult = {
-                        id: decoded.data?.transactionId,
-                        status: decoded.code,
-                        update_time: Date.now().toString(),
-                    };
-                    await order.save();
-
-                    if (order.user && order.user.email) {
-                        sendOrderReceiptEmail(order.user.email, order.user.name, order)
-                            .catch(err => console.error('[Email] Receipt error:', err));
-                    }
-                }
-            }
-        } else {
-            // Fallback: verify with PhonePe status API
-            await verifyAndUpdateOrder(transactionId).catch(console.error);
-        }
-
-        // PhonePe requires HTTP 200 acknowledgement
-        return res.status(200).json({ success: true });
-
-    } catch (error) {
-        console.error('[PhonePe Webhook] Error:', error?.response?.data || error.message);
-        return res.status(200).json({ success: false }); // Always 200 to avoid PhonePe retries
+        console.error('[Razorpay] Verify Payment Error:', error.message);
+        res.status(500).json({ success: false, message: 'Server error verifying payment' });
     }
 });
 

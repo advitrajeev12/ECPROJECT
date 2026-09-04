@@ -46,7 +46,7 @@ const Login = () => {
             const res = await sendOtp(mobile);
             if (res.success) {
                 setOtpSent(true);
-                setOtpSuccessMsg(`OTP sent to +91 ${mobile}`);
+                setOtpSuccessMsg(res.devOtp ? `OTP sent to +91 ${mobile} (Dev OTP: ${res.devOtp})` : `OTP sent to +91 ${mobile}`);
             } else {
                 setError(res.message || "Failed to send OTP");
             }

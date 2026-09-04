@@ -2,7 +2,7 @@ import express from 'express';
 import User from '../../models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { verifyMsg91Token } from '../../utils/msg91Service.js';
+import { sendFast2SMSOtp, verifyFast2SMSOtp } from '../../utils/fast2smsService.js';
 
 const router = express.Router();
 
@@ -64,18 +64,34 @@ router.post('/login', async (req, res) => {
     }
 });
 
-// Verify OTP Widget access token
-router.post('/verify-otp', async (req, res) => {
-    const { accessToken } = req.body;
-
-    if (!accessToken) {
-        return res.status(400).json({ success: false, message: 'MSG91 Access Token is required' });
+// Send OTP
+router.post('/send-otp', async (req, res) => {
+    const { mobile } = req.body;
+    if (!mobile) {
+        return res.status(400).json({ success: false, message: 'Mobile number is required' });
     }
 
     try {
-        const { mobile } = await verifyMsg91Token(accessToken);
+        const result = await sendFast2SMSOtp(mobile);
+        res.json(result);
+    } catch (error) {
+        console.error('API Send OTP error:', error);
+        res.status(400).json({ success: false, message: error.message });
+    }
+});
 
-        const user = await User.findOne({ mobile }).lean();
+// Verify OTP
+router.post('/verify-otp', async (req, res) => {
+    const { mobile, otp } = req.body;
+
+    if (!mobile || !otp) {
+        return res.status(400).json({ success: false, message: 'Mobile number and OTP are required' });
+    }
+
+    try {
+        const { mobile: cleanMobile } = await verifyFast2SMSOtp(mobile, otp);
+
+        const user = await User.findOne({ mobile: cleanMobile }).lean();
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found. Please sign up first.' });
         }
